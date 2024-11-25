@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+SCRIPT_DIR="$(dirname -- "$(realpath --relative-to="$(pwd)" -- "${0}")")"
+PROJ_DIR="$(dirname -- "${SCRIPT_DIR}")/.."
+
+(
+  cd -- "${PROJ_DIR}" \
+  && git status -s | sed -e 's/^\s*//' | cut -d' ' -f2 \
+    | grep -qe '^dist\/' \
+) && {
+  echo "Some dist files are not commited in the dist directory!" >&2
+  echo "Can't push" >&2
+  exit 1
+}
+
+exit 0

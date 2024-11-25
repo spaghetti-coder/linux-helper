@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+SCRIPT_DIR="$(dirname -- "$(realpath --relative-to="$(pwd)" -- "${0}")")"
+BUILD_DIR="$(dirname -- "${SCRIPT_DIR}")"
+
+RC=0
+
+(set -x; "${BUILD_DIR}/compile.sh") || RC=$?
+
+exit ${RC}
