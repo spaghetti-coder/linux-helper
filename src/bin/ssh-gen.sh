@@ -36,16 +36,30 @@ ssh_gen() (
     [conffile_entry]=false
   )
 
+  print_help_usage() {
+    echo "
+      ${THE_SCRIPT} [--port PORT='22'] [--host HOST=HOSTNAME] \\
+     ,  [--comment COMMENT=\"\$(id -un)@\$(hostname -f)\"] [--dirname DIRNAME=HOSTNAME] \\
+     ,  [--filename FILENAME=USER] [--dest-dir DEST_DIR=\"\${HOME}/.ssh/\"HOSTNAME] \\
+     ,  [--ask] [--] USER HOSTNAME
+    "
+  }
+
   print_help() {
+    # If not a file, default to ssh-gen.sh script name
+    declare THE_SCRIPT=ssh-gen.sh
+    grep -q -m 1 -- '.' "${0}" 2>/dev/null && THE_SCRIPT="$(basename -- "${0}")"
+
     declare -r \
       USER=foo \
       HOSTNAME=10.0.0.69 \
       CUSTOM_DIR=_.serv.com \
       CUSTOM_FILE=bar
 
-    # If not a file, default to ssh-gen.sh script name
-    declare THE_SCRIPT=ssh-gen.sh
-    grep -q -m 1 -- '.' "${0}" 2>/dev/null && THE_SCRIPT="$(basename -- "${0}")"
+    if declare -F "print_help_${1,,}" &>/dev/null; then
+      print_help_usage | text_nice
+      exit
+    fi
 
     text_nice "
       Generate private and public key pair and manage Include entry in ~/.ssh/config
@@ -55,23 +69,23 @@ ssh_gen() (
      ,
       USAGE:
       =====
-      ${THE_SCRIPT} USER HOSTNAME [OPTIONS]
+      $(print_help_usage)
      ,
-      PARAMS (=DEFAULT_VALUE):
+      PARAMS:
       ======
       USER      SSH user
       HOSTNAME  The actual SSH host. When values like '%h' (the target hostname)
      ,          used, must provide --host and most likely --dirname
       --        End of options
-      --port    (='22') SSH port
-      --host    (=HOSTNAME) SSH host match pattern
-      --comment   (=\$(id -un)@\$(hostname -f)) Certificate comment
-      --dirname   (=HOSTNAME) Destination directory name
-      --filename  (=USER) Destination file name
-      --dest-dir  (=~/.ssh/HOSTNAME) Custom destination directory. In case the option
-     ,            is provided --dirname option is ignored and Include entry won't be
-     ,            created in ~/.ssh/config file. The directory will be autocreated
-      --ask       Flag that will provoke a prompt all params
+      --port    SSH port
+      --host    SSH host match pattern
+      --comment   Certificate comment
+      --dirname   Destination directory name
+      --filename  Destination file name
+      --dest-dir  Custom destination directory. In case the option is provided
+     ,            --dirname option is ignored and Include entry won't be created in
+     ,            ~/.ssh/config file. The directory will be autocreated
+      --ask       Provoke a prompt for all params
      ,
       DEMO:
       ====
@@ -97,7 +111,7 @@ ssh_gen() (
 
       case "${param}" in
         --            ) endopts=true ;;
-        -\?|-h|--help ) print_help; exit ;;
+        -\?|-h|--help ) print_help "${@:2}"; exit ;;
         --port        ) SG_PORT="${2}"; shift ;;
         --port=*      ) SG_PORT="${1#*=}" ;;
         --host        ) SG_HOST="${2}"; shift ;;

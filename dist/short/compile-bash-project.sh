@@ -83,10 +83,19 @@ compile_bash_file() (
 
   declare -a ERRBAG
 
+  print_help_usage() {
+    echo "${THE_SCRIPT} [--] SRC_FILE DEST_FILE LIBS_PATH"
+  }
+
   print_help() {
     # If not a file, default to ssh-gen.sh script name
     declare THE_SCRIPT=compile-bash-file.sh
     grep -q -m 1 -- '.' "${0}" 2>/dev/null && THE_SCRIPT="$(basename -- "${0}")"
+
+    if declare -F "print_help_${1,,}" &>/dev/null; then
+      print_help_usage | text_nice
+      exit
+    fi
 
     text_nice "
       Compile bash script. Processing:
@@ -99,9 +108,9 @@ compile_bash_file() (
      ,
       USAGE:
       =====
-      ${THE_SCRIPT} SRC_FILE DEST_FILE LIBS_PATH
+      $(print_help_usage)
      ,
-      PARAMS (=DEFAULT_VALUE):
+      PARAMS:
       ======
       SRC_FILE    Source file
       DEST_FILE   Compilation destination file
@@ -154,7 +163,7 @@ compile_bash_file() (
 
       case "${param}" in
         --            ) endopts=true ;;
-        -\?|-h|--help ) print_help; exit ;;
+        -\?|-h|--help ) print_help "${@:2}"; exit ;;
         *             ) args+=("${1}") ;;
       esac
 
@@ -258,10 +267,22 @@ compile_bash_project() (
 
   declare -a ERRBAG
 
+  print_help_usage() {
+    echo "
+      ${THE_SCRIPT} [--ext EXT='.sh'...] [--no-ext EXT=''...] [--] \\
+     ,  SRC_DIR DEST_DIR
+    "
+  }
+
   print_help() {
     # If not a file, default to ssh-gen.sh script name
     declare THE_SCRIPT=compile-bash-project.sh
     grep -q -m 1 -- '.' "${0}" 2>/dev/null && THE_SCRIPT="$(basename -- "${0}")"
+
+    if declare -F "print_help_${1,,}" &>/dev/null; then
+      print_help_usage | text_nice
+      exit
+    fi
 
     text_nice "
       Shortcut for compile-bash-file.sh.
@@ -279,15 +300,15 @@ compile_bash_project() (
      ,
       USAGE:
       =====
-      ${THE_SCRIPT} SRC_DIR DEST_DIR [OPTIONS]
+      $(print_help_usage)
      ,
-      PARAMS (=DEFAULT_VALUE):
+      PARAMS:
       ======
       SRC_DIR     Source directory
       DEST_DIR    Compilation destination directory
       --          End of options
-      --ext       (='.sh') Array of extension patterns of files to be compiled
-      --no-ext    (='') Array of exclude extension patterns
+      --ext       Array of extension patterns of files to be compiled
+      --no-ext    Array of exclude extension patterns
      ,
       DEMO:
       ====
@@ -308,7 +329,7 @@ compile_bash_project() (
 
       case "${param}" in
         --            ) endopts=true ;;
-        -\?|-h|--help ) print_help; exit ;;
+        -\?|-h|--help ) print_help "${@:2}"; exit ;;
         --ext         ) EXTS+=("${2}"); shift ;;
         --ext=*       ) EXTS+=("${1#*=}") ;;
         --no-ext      ) NO_EXTS+=("${2}"); shift ;;

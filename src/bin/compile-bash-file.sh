@@ -13,10 +13,19 @@ compile_bash_file() (
 
   declare -a ERRBAG
 
+  print_help_usage() {
+    echo "${THE_SCRIPT} [--] SRC_FILE DEST_FILE LIBS_PATH"
+  }
+
   print_help() {
     # If not a file, default to ssh-gen.sh script name
     declare THE_SCRIPT=compile-bash-file.sh
     grep -q -m 1 -- '.' "${0}" 2>/dev/null && THE_SCRIPT="$(basename -- "${0}")"
+
+    if declare -F "print_help_${1,,}" &>/dev/null; then
+      print_help_usage | text_nice
+      exit
+    fi
 
     text_nice "
       Compile bash script. Processing:
@@ -29,9 +38,9 @@ compile_bash_file() (
      ,
       USAGE:
       =====
-      ${THE_SCRIPT} SRC_FILE DEST_FILE LIBS_PATH
+      $(print_help_usage)
      ,
-      PARAMS (=DEFAULT_VALUE):
+      PARAMS:
       ======
       SRC_FILE    Source file
       DEST_FILE   Compilation destination file
@@ -84,7 +93,7 @@ compile_bash_file() (
 
       case "${param}" in
         --            ) endopts=true ;;
-        -\?|-h|--help ) print_help; exit ;;
+        -\?|-h|--help ) print_help "${@:2}"; exit ;;
         *             ) args+=("${1}") ;;
       esac
 

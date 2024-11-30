@@ -7,19 +7,19 @@
 ## Tools
 
 <details><summary>bin/ssh-gen.sh</summary>
-  <!-- .LH_ADHOC:bin/ssh-gen.sh USER HOSTNAME [OPTIONS] -->
+  <!-- .LH_ADHOC:bin/ssh-gen.sh -->
   <!-- .LH_HELP:bin/ssh-gen.sh -->
 </details>  
 <details><summary>bin/compile-bash-file.sh</summary>
-  <!-- .LH_ADHOC:bin/compile-bash-file.sh SRC_FILE DEST_FILE LIBS_PATH -->
+  <!-- .LH_ADHOC:bin/compile-bash-file.sh -->
   <!-- .LH_HELP:bin/compile-bash-file.sh -->
 </details>  
 <details><summary>short/compile-bash-project.sh</summary>
-  <!-- .LH_ADHOC:short/compile-bash-project.sh SRC_DIR DEST_DIR [OPTIONS] -->
+  <!-- .LH_ADHOC:short/compile-bash-project.sh -->
   <!-- .LH_HELP:short/compile-bash-project.sh -->
 </details>  
 <details><summary>short/ssh-gen-github.sh</summary>
-  <!-- .LH_ADHOC:short/ssh-gen-github.sh [ACCOUNT] [OPTIONS] -->
+  <!-- .LH_ADHOC:short/ssh-gen-github.sh -->
   <!-- .LH_HELP:short/ssh-gen-github.sh -->
 </details>  
 

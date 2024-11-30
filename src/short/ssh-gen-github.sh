@@ -13,12 +13,24 @@ ssh_gen_github() (
 
   declare -a UPSTREAM_PARAMS=("${DEFAULTS[account]}" "${DEFAULTS[host]}")
 
-  print_help() {
-    declare -r ACCOUNT=foo
+  print_help_usage() {
+    echo "
+      ${THE_SCRIPT} [--host HOST='${DEFAULTS[host]}'] \\
+     ,  [--comment COMMENT=\"\$(id -un)@\$(hostname -f)\"] [--] [ACCOUNT='${DEFAULTS[account]}']
+    "
+  }
 
+  print_help() {
     # If not a file, default to ssh-gen.sh script name
     declare THE_SCRIPT=ssh-gen-github.sh
     grep -q -m 1 -- '.' "${0}" 2>/dev/null && THE_SCRIPT="$(basename -- "${0}")"
+
+    declare -r ACCOUNT=foo
+
+    if declare -F "print_help_${1,,}" &>/dev/null; then
+      print_help_usage | text_nice
+      exit
+    fi
 
     text_nice "
       Generate private and public key pair and configure ~/.ssh/config file to
@@ -26,14 +38,14 @@ ssh_gen_github() (
      ,
       USAGE:
       =====
-      ${THE_SCRIPT} [ACCOUNT] [OPTIONS]
+      $(print_help_usage)
      ,
       PARAMS (=DEFAULT_VALUE):
       ======
-      ACCOUNT   (='${DEFAULTS[account]}') Github account, only used to form cert filename
+      ACCOUNT   Github account, only used to form cert filename
       --        End of options
-      --host    (='${DEFAULTS[host]}') SSH host match pattern
-      --comment (=\$(id -un)@\$(hostname -f)) Certificate comment
+      --host    SSH host match pattern
+      --comment Certificate comment
      ,
       DEMO:
       ====
@@ -55,7 +67,7 @@ ssh_gen_github() (
 
       case "${param}" in
         --            ) endopts=true ;;
-        -\?|-h|--help ) print_help; exit ;;
+        -\?|-h|--help ) print_help "${@:2}"; exit ;;
         --host        ) UPSTREAM_PARAMS+=(--host "${2}"); shift ;;
         --host=*      ) UPSTREAM_PARAMS+=(--host "${1#*=}") ;;
         --comment     ) UPSTREAM_PARAMS+=(--comment "${2}"); shift ;;

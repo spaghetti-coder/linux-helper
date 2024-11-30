@@ -34,7 +34,7 @@ echo "# ===== ${SELF}: compiling ${SRC_MD} => ${DEST_MD}" >&2
 
 # shellcheck disable=SC2317
 replace_help_cbk() {
-  declare help; help="$("${DIST_DIR}/${1}" --help)" || return $?
+  declare help; help="$(set -x; "${DIST_DIR}/${1}" --help)" || return $?
 
   REPLACEMENT=$'\n''**MAN:**'$'\n''~~~'$'\n'
   REPLACEMENT+="${help}"
@@ -45,17 +45,26 @@ replace_help_cbk() {
 # shellcheck disable=SC2016
 replace_adhoc_cbk() {
   declare file; file="$(cut -d' ' -f1 <<< "${1} ")"
-  declare params; params="$(cut -d' ' -f2- <<< "${1} ")"
+  declare params
+
+  params="$(
+    (set -x; "${DIST_DIR}/${1}" --help usage) \
+    | cut -d ' ' -f2- | text_ltrim | sed 's/^/,  /' | text_ltrim
+  )"
+  if [[ -n "${params}" ]]; then
+    params=" \\"$'\n'"${params}"
+  fi
 
   REPLACEMENT=$'\n'"$(text_nice '
     **AD HOC:**
     ~~~sh
+    # Review and change input params
     bash <(
    ,  # Can be changed to tag or commit ID
    ,  VERSION="'"${BASE_VERSION}"'"
    ,  curl -V &>/dev/null && tool=(curl -sL) || tool=(wget -qO-)
    ,  set -x; "${tool[@]}" "'"${BASE_URL}/\${VERSION}/dist/${file}"'"
-    ) '"${params}"'
+    )'"${params}"'
     ~~~
   ')"$'\n'
 }

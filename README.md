@@ -10,12 +10,17 @@
   
   **AD HOC:**
   ~~~sh
+  # Review and change input params
   bash <(
     # Can be changed to tag or commit ID
     VERSION="master"
     curl -V &>/dev/null && tool=(curl -sL) || tool=(wget -qO-)
     set -x; "${tool[@]}" "https://raw.githubusercontent.com/spaghetti-coder/linux-helper/${VERSION}/dist/bin/ssh-gen.sh"
-  ) USER HOSTNAME [OPTIONS]
+  ) \
+    [--port PORT='22'] [--host HOST=HOSTNAME] \
+    [--comment COMMENT="$(id -un)@$(hostname -f)"] [--dirname DIRNAME=HOSTNAME] \
+    [--filename FILENAME=USER] [--dest-dir DEST_DIR="${HOME}/.ssh/"HOSTNAME] \
+    [--ask] [--] USER HOSTNAME
   ~~~
   
   
@@ -28,23 +33,26 @@
   
   USAGE:
   =====
-  ssh-gen.sh USER HOSTNAME [OPTIONS]
+  ssh-gen.sh [--port PORT='22'] [--host HOST=HOSTNAME] \
+    [--comment COMMENT="$(id -un)@$(hostname -f)"] [--dirname DIRNAME=HOSTNAME] \
+    [--filename FILENAME=USER] [--dest-dir DEST_DIR="${HOME}/.ssh/"HOSTNAME] \
+    [--ask] [--] USER HOSTNAME
   
-  PARAMS (=DEFAULT_VALUE):
+  PARAMS:
   ======
   USER      SSH user
   HOSTNAME  The actual SSH host. When values like '%h' (the target hostname)
             used, must provide --host and most likely --dirname
   --        End of options
-  --port    (='22') SSH port
-  --host    (=HOSTNAME) SSH host match pattern
-  --comment   (=$(id -un)@$(hostname -f)) Certificate comment
-  --dirname   (=HOSTNAME) Destination directory name
-  --filename  (=USER) Destination file name
-  --dest-dir  (=~/.ssh/HOSTNAME) Custom destination directory. In case the option
-              is provided --dirname option is ignored and Include entry won't be
-              created in ~/.ssh/config file. The directory will be autocreated
-  --ask       Flag that will provoke a prompt all params
+  --port    SSH port
+  --host    SSH host match pattern
+  --comment   Certificate comment
+  --dirname   Destination directory name
+  --filename  Destination file name
+  --dest-dir  Custom destination directory. In case the option is provided
+              --dirname option is ignored and Include entry won't be created in
+              ~/.ssh/config file. The directory will be autocreated
+  --ask       Provoke a prompt for all params
   
   DEMO:
   ====
@@ -64,12 +72,14 @@
   
   **AD HOC:**
   ~~~sh
+  # Review and change input params
   bash <(
     # Can be changed to tag or commit ID
     VERSION="master"
     curl -V &>/dev/null && tool=(curl -sL) || tool=(wget -qO-)
     set -x; "${tool[@]}" "https://raw.githubusercontent.com/spaghetti-coder/linux-helper/${VERSION}/dist/bin/compile-bash-file.sh"
-  ) SRC_FILE DEST_FILE LIBS_PATH
+  ) \
+    [--] SRC_FILE DEST_FILE LIBS_PATH
   ~~~
   
   
@@ -85,9 +95,9 @@
   
   USAGE:
   =====
-  compile-bash-file.sh SRC_FILE DEST_FILE LIBS_PATH
+  compile-bash-file.sh [--] SRC_FILE DEST_FILE LIBS_PATH
   
-  PARAMS (=DEFAULT_VALUE):
+  PARAMS:
   ======
   SRC_FILE    Source file
   DEST_FILE   Compilation destination file
@@ -134,12 +144,15 @@
   
   **AD HOC:**
   ~~~sh
+  # Review and change input params
   bash <(
     # Can be changed to tag or commit ID
     VERSION="master"
     curl -V &>/dev/null && tool=(curl -sL) || tool=(wget -qO-)
     set -x; "${tool[@]}" "https://raw.githubusercontent.com/spaghetti-coder/linux-helper/${VERSION}/dist/short/compile-bash-project.sh"
-  ) SRC_DIR DEST_DIR [OPTIONS]
+  ) \
+    [--ext EXT='.sh'...] [--no-ext EXT=''...] [--] \
+    SRC_DIR DEST_DIR
   ~~~
   
   
@@ -160,15 +173,16 @@
   
   USAGE:
   =====
-  compile-bash-project.sh SRC_DIR DEST_DIR [OPTIONS]
+  compile-bash-project.sh [--ext EXT='.sh'...] [--no-ext EXT=''...] [--] \
+    SRC_DIR DEST_DIR
   
-  PARAMS (=DEFAULT_VALUE):
+  PARAMS:
   ======
   SRC_DIR     Source directory
   DEST_DIR    Compilation destination directory
   --          End of options
-  --ext       (='.sh') Array of extension patterns of files to be compiled
-  --no-ext    (='') Array of exclude extension patterns
+  --ext       Array of extension patterns of files to be compiled
+  --no-ext    Array of exclude extension patterns
   
   DEMO:
   ====
@@ -183,12 +197,15 @@
   
   **AD HOC:**
   ~~~sh
+  # Review and change input params
   bash <(
     # Can be changed to tag or commit ID
     VERSION="master"
     curl -V &>/dev/null && tool=(curl -sL) || tool=(wget -qO-)
     set -x; "${tool[@]}" "https://raw.githubusercontent.com/spaghetti-coder/linux-helper/${VERSION}/dist/short/ssh-gen-github.sh"
-  ) [ACCOUNT] [OPTIONS]
+  ) \
+    [--host HOST='github.com'] \
+    [--comment COMMENT="$(id -un)@$(hostname -f)"] [--] [ACCOUNT='git']
   ~~~
   
   
@@ -199,14 +216,15 @@
   
   USAGE:
   =====
-  ssh-gen-github.sh [ACCOUNT] [OPTIONS]
+  ssh-gen-github.sh [--host HOST='github.com'] \
+    [--comment COMMENT="$(id -un)@$(hostname -f)"] [--] [ACCOUNT='git']
   
   PARAMS (=DEFAULT_VALUE):
   ======
-  ACCOUNT   (='git') Github account, only used to form cert filename
+  ACCOUNT   Github account, only used to form cert filename
   --        End of options
-  --host    (='github.com') SSH host match pattern
-  --comment (=$(id -un)@$(hostname -f)) Certificate comment
+  --host    SSH host match pattern
+  --comment Certificate comment
   
   DEMO:
   ====
