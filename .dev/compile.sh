@@ -21,7 +21,7 @@ get_bash_compiler() {
 RC=0
 
 ( set -o pipefail
-  get_bash_compiler | bash <(cat) -- "${SRC_DIR}" "${DEST_DIR}"
+  get_bash_compiler | bash <(cat) --no-ext '.ignore.sh' -- "${SRC_DIR}" "${DEST_DIR}"
 ) || RC=1
 
 "${SELF_DIR}/bin/compile-md.sh" || RC=1

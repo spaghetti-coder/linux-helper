@@ -23,6 +23,8 @@ replace_marker() {
       "${prefix_rex}" "${marker_rex}" "${suffix_rex}"
   )"
 
+  declare -i RC=0
+
   declare line \
           number \
           offset \
@@ -41,7 +43,7 @@ replace_marker() {
     offset="$(grep -o '^\s*' <<< "${line}")"
     arg="$(text_ltrim "${line}")"
 
-    "${replace_cbk}" "${arg}" || continue
+    "${replace_cbk}" "${arg}" || { RC=1; continue; }
     if [[ -n "${REPLACEMENT}" ]]; then
       # shellcheck disable=SC2001
       REPLACEMENT="$(sed -e 's/^/'"${offset}"'/' <<< "${REPLACEMENT}")"$'\n'
@@ -56,6 +58,7 @@ replace_marker() {
   done
 
   printf -- '%s\n' "${content}"
+  return ${RC}
 }
 
 # .LH_NOSOURCE

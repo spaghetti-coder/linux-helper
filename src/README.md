@@ -1,31 +1,80 @@
+<a id="top"></a>
+
 # Linux helper
 
 * [Tools](#tools)
+* [Config](#config)
 * [Libraries](#libraries)
 * [Development](#development)
 
 ## Tools
 
-<details><summary>bin/ssh-gen.sh</summary>
-  <!-- .LH_ADHOC:bin/ssh-gen.sh -->
-  <!-- .LH_HELP:bin/ssh-gen.sh -->
-</details>  
+<a id="bin/compile-bash-file.sh"></a>
 <details><summary>bin/compile-bash-file.sh</summary>
   <!-- .LH_ADHOC:bin/compile-bash-file.sh -->
   <!-- .LH_HELP:bin/compile-bash-file.sh -->
 </details>  
+<a id="bin/ssh-gen.sh"></a>
+<details><summary>bin/ssh-gen.sh</summary>
+  <!-- .LH_ADHOC:bin/ssh-gen.sh -->
+  <!-- .LH_HELP:bin/ssh-gen.sh -->
+</details>  
+<a id="short/compile-bash-project.sh"></a>
 <details><summary>short/compile-bash-project.sh</summary>
   <!-- .LH_ADHOC:short/compile-bash-project.sh -->
   <!-- .LH_HELP:short/compile-bash-project.sh -->
 </details>  
+<a id="short/ssh-gen-github.sh"></a>
 <details><summary>short/ssh-gen-github.sh</summary>
   <!-- .LH_ADHOC:short/ssh-gen-github.sh -->
   <!-- .LH_HELP:short/ssh-gen-github.sh -->
 </details>  
 
+[To top]
+
+## Config
+
+<a id="config/tmux"></a>
+<details><summary>config/tmux</summary>
+
+  `TMUX_CONFD` - tmux confd directory. To install to some system directory prefix the command with `sudo`.
+
+  To view the configurations pass `--info` flag as the first param to the scripts.
+
+  Install tmux basic configurations.
+
+  ~~~sh
+  # default.conf
+  bash <(
+    # Can be changed to tag or commit ID
+    VERSION="master"
+    curl -V &>/dev/null && dl_tool=(curl -sfL) || dl_tool=(wget -qO-)
+    set -x; "${dl_tool[@]}" "@@BASE_RAW_URL/${VERSION}/dist/config/tmux/default.sh" \
+    || "${dl_tool[@]}" "@@BASE_RAW_URL_ALT/${VERSION}/dist/config/tmux/default.sh"
+  ) [TMUX_CONFD="${HOME}/.tmux"]
+  ~~~
+
+  Install tmux plugins configurations (requires git and tmux installed):
+
+  ~~~sh
+  # plugins.conf
+  bash <(
+    # Can be changed to tag or commit ID
+    VERSION="master"
+    curl -V &>/dev/null && dl_tool=(curl -sfL) || dl_tool=(wget -qO-)
+    set -x; "${dl_tool[@]}" "@@BASE_RAW_URL/${VERSION}/dist/config/tmux/plugins.sh" \
+    || "${dl_tool[@]}" "@@BASE_RAW_URL_ALT/${VERSION}/dist/config/tmux/plugins.sh"
+  ) [TMUX_CONFD="${HOME}/.tmux"]
+  ~~~
+</details>  
+
+[To top]
+
 ## Libraries
 
 TODO
+
+[To top]
 
 ## Development
 
@@ -56,3 +105,7 @@ Compiler searches in the `src/*.sh` comments of type
 * `# .LH_NOSOURCE` comment in the lib file and following lines up to the end of file won't be included.
 
 The compiled files go to the `dist` directory
+
+[To top]
+
+[To top]: #top

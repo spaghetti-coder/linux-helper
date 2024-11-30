@@ -1,73 +1,15 @@
+<a id="top"></a>
+
 # Linux helper
 
 * [Tools](#tools)
+* [Config](#config)
 * [Libraries](#libraries)
 * [Development](#development)
 
 ## Tools
 
-<details><summary>bin/ssh-gen.sh</summary>
-  
-  **AD HOC:**
-  ~~~sh
-  # Review and change input params
-  bash <(
-    # Can be changed to tag or commit ID
-    VERSION="master"
-    curl -V &>/dev/null && tool=(curl -sL) || tool=(wget -qO-)
-    set -x; "${tool[@]}" "https://raw.githubusercontent.com/spaghetti-coder/linux-helper/${VERSION}/dist/bin/ssh-gen.sh"
-  ) \
-    [--port PORT='22'] [--host HOST=HOSTNAME] \
-    [--comment COMMENT="$(id -un)@$(hostname -f)"] [--dirname DIRNAME=HOSTNAME] \
-    [--filename FILENAME=USER] [--dest-dir DEST_DIR="${HOME}/.ssh/"HOSTNAME] \
-    [--ask] [--] USER HOSTNAME
-  ~~~
-  
-  
-  **MAN:**
-  ~~~
-  Generate private and public key pair and manage Include entry in ~/.ssh/config
-  file. For option replacements environment variables can be used, by prefixing
-  env var with 'SG_', turning opt name to uppercase and replacing '-' with '_'
-  (--dest-dir ~/serv.com/ => SG_DEST_DIR="${HOME}/serv.com/")
-  
-  USAGE:
-  =====
-  ssh-gen.sh [--port PORT='22'] [--host HOST=HOSTNAME] \
-    [--comment COMMENT="$(id -un)@$(hostname -f)"] [--dirname DIRNAME=HOSTNAME] \
-    [--filename FILENAME=USER] [--dest-dir DEST_DIR="${HOME}/.ssh/"HOSTNAME] \
-    [--ask] [--] USER HOSTNAME
-  
-  PARAMS:
-  ======
-  USER      SSH user
-  HOSTNAME  The actual SSH host. When values like '%h' (the target hostname)
-            used, must provide --host and most likely --dirname
-  --        End of options
-  --port    SSH port
-  --host    SSH host match pattern
-  --comment   Certificate comment
-  --dirname   Destination directory name
-  --filename  Destination file name
-  --dest-dir  Custom destination directory. In case the option is provided
-              --dirname option is ignored and Include entry won't be created in
-              ~/.ssh/config file. The directory will be autocreated
-  --ask       Provoke a prompt for all params
-  
-  DEMO:
-  ====
-  # Generate with all defaults to PK file ~/.ssh/serv.com/user
-  ssh-gen.sh user serv.com
-  
-  # Generate to ~/.ssh/_.serv.com/bar instead of ~/.ssh/10.0.0.69/foo
-  SG_DIRNAME='_.serv.com' SG_HOST='serv.com *.serv.com' \
-    ssh-gen.sh --filename='bar' --comment Zoo -- foo 10.0.0.69
-  
-  # Generate interactively to ~/my/certs/foo (will be prompted for params)
-  ssh-gen.sh --ask --dest-dir ~/my/certs/foo
-  ~~~
-  
-</details>  
+<a id="bin/compile-bash-file.sh"></a>
 <details><summary>bin/compile-bash-file.sh</summary>
   
   **AD HOC:**
@@ -76,8 +18,9 @@
   bash <(
     # Can be changed to tag or commit ID
     VERSION="master"
-    curl -V &>/dev/null && tool=(curl -sL) || tool=(wget -qO-)
-    set -x; "${tool[@]}" "https://raw.githubusercontent.com/spaghetti-coder/linux-helper/${VERSION}/dist/bin/compile-bash-file.sh"
+    curl -V &>/dev/null && dl_tool=(curl -sL) || dl_tool=(wget -qO-)
+    set -x; "${dl_tool[@]}" "https://raw.githubusercontent.com/spaghetti-coder/linux-helper/${VERSION}/dist/bin/compile-bash-file.sh" \
+    || "${dl_tool[@]}" "https://bitbucket.org/kvedenskii/linux-scripts/raw/${VERSION}/dist/bin/compile-bash-file.sh"
   ) \
     [--] SRC_FILE DEST_FILE LIBS_PATH
   ~~~
@@ -140,6 +83,71 @@
   ~~~
   
 </details>  
+<a id="bin/ssh-gen.sh"></a>
+<details><summary>bin/ssh-gen.sh</summary>
+  
+  **AD HOC:**
+  ~~~sh
+  # Review and change input params
+  bash <(
+    # Can be changed to tag or commit ID
+    VERSION="master"
+    curl -V &>/dev/null && dl_tool=(curl -sL) || dl_tool=(wget -qO-)
+    set -x; "${dl_tool[@]}" "https://raw.githubusercontent.com/spaghetti-coder/linux-helper/${VERSION}/dist/bin/ssh-gen.sh" \
+    || "${dl_tool[@]}" "https://bitbucket.org/kvedenskii/linux-scripts/raw/${VERSION}/dist/bin/ssh-gen.sh"
+  ) \
+    [--port PORT='22'] [--host HOST=HOSTNAME] \
+    [--comment COMMENT="$(id -un)@$(hostname -f)"] [--dirname DIRNAME=HOSTNAME] \
+    [--filename FILENAME=USER] [--dest-dir DEST_DIR="${HOME}/.ssh/"HOSTNAME] \
+    [--ask] [--] USER HOSTNAME
+  ~~~
+  
+  
+  **MAN:**
+  ~~~
+  Generate private and public key pair and manage Include entry in ~/.ssh/config
+  file. For option replacements environment variables can be used, by prefixing
+  env var with 'SG_', turning opt name to uppercase and replacing '-' with '_'
+  (--dest-dir ~/serv.com/ => SG_DEST_DIR="${HOME}/serv.com/")
+  
+  USAGE:
+  =====
+  ssh-gen.sh [--port PORT='22'] [--host HOST=HOSTNAME] \
+    [--comment COMMENT="$(id -un)@$(hostname -f)"] [--dirname DIRNAME=HOSTNAME] \
+    [--filename FILENAME=USER] [--dest-dir DEST_DIR="${HOME}/.ssh/"HOSTNAME] \
+    [--ask] [--] USER HOSTNAME
+  
+  PARAMS:
+  ======
+  USER      SSH user
+  HOSTNAME  The actual SSH host. When values like '%h' (the target hostname)
+            used, must provide --host and most likely --dirname
+  --        End of options
+  --port    SSH port
+  --host    SSH host match pattern
+  --comment   Certificate comment
+  --dirname   Destination directory name
+  --filename  Destination file name
+  --dest-dir  Custom destination directory. In case the option is provided
+              --dirname option is ignored and Include entry won't be created in
+              ~/.ssh/config file. The directory will be autocreated
+  --ask       Provoke a prompt for all params
+  
+  DEMO:
+  ====
+  # Generate with all defaults to PK file ~/.ssh/serv.com/user
+  ssh-gen.sh user serv.com
+  
+  # Generate to ~/.ssh/_.serv.com/bar instead of ~/.ssh/10.0.0.69/foo
+  SG_DIRNAME='_.serv.com' SG_HOST='serv.com *.serv.com' \
+    ssh-gen.sh --filename='bar' --comment Zoo -- foo 10.0.0.69
+  
+  # Generate interactively to ~/my/certs/foo (will be prompted for params)
+  ssh-gen.sh --ask --dest-dir ~/my/certs/foo
+  ~~~
+  
+</details>  
+<a id="short/compile-bash-project.sh"></a>
 <details><summary>short/compile-bash-project.sh</summary>
   
   **AD HOC:**
@@ -148,8 +156,9 @@
   bash <(
     # Can be changed to tag or commit ID
     VERSION="master"
-    curl -V &>/dev/null && tool=(curl -sL) || tool=(wget -qO-)
-    set -x; "${tool[@]}" "https://raw.githubusercontent.com/spaghetti-coder/linux-helper/${VERSION}/dist/short/compile-bash-project.sh"
+    curl -V &>/dev/null && dl_tool=(curl -sL) || dl_tool=(wget -qO-)
+    set -x; "${dl_tool[@]}" "https://raw.githubusercontent.com/spaghetti-coder/linux-helper/${VERSION}/dist/short/compile-bash-project.sh" \
+    || "${dl_tool[@]}" "https://bitbucket.org/kvedenskii/linux-scripts/raw/${VERSION}/dist/short/compile-bash-project.sh"
   ) \
     [--ext EXT='.sh'...] [--no-ext EXT=''...] [--] \
     SRC_DIR DEST_DIR
@@ -193,6 +202,7 @@
   ~~~
   
 </details>  
+<a id="short/ssh-gen-github.sh"></a>
 <details><summary>short/ssh-gen-github.sh</summary>
   
   **AD HOC:**
@@ -201,8 +211,9 @@
   bash <(
     # Can be changed to tag or commit ID
     VERSION="master"
-    curl -V &>/dev/null && tool=(curl -sL) || tool=(wget -qO-)
-    set -x; "${tool[@]}" "https://raw.githubusercontent.com/spaghetti-coder/linux-helper/${VERSION}/dist/short/ssh-gen-github.sh"
+    curl -V &>/dev/null && dl_tool=(curl -sL) || dl_tool=(wget -qO-)
+    set -x; "${dl_tool[@]}" "https://raw.githubusercontent.com/spaghetti-coder/linux-helper/${VERSION}/dist/short/ssh-gen-github.sh" \
+    || "${dl_tool[@]}" "https://bitbucket.org/kvedenskii/linux-scripts/raw/${VERSION}/dist/short/ssh-gen-github.sh"
   ) \
     [--host HOST='github.com'] \
     [--comment COMMENT="$(id -un)@$(hostname -f)"] [--] [ACCOUNT='git']
@@ -237,9 +248,51 @@
   
 </details>  
 
+[To top]
+
+## Config
+
+<a id="config/tmux"></a>
+<details><summary>config/tmux</summary>
+
+  `TMUX_CONFD` - tmux confd directory. To install to some system directory prefix the command with `sudo`.
+
+  To view the configurations pass `--info` flag as the first param to the scripts.
+
+  Install tmux basic configurations.
+
+  ~~~sh
+  # default.conf
+  bash <(
+    # Can be changed to tag or commit ID
+    VERSION="master"
+    curl -V &>/dev/null && dl_tool=(curl -sfL) || dl_tool=(wget -qO-)
+    set -x; "${dl_tool[@]}" "https://raw.githubusercontent.com/spaghetti-coder/linux-helper/${VERSION}/dist/config/tmux/default.sh" \
+    || "${dl_tool[@]}" "https://bitbucket.org/kvedenskii/linux-scripts/raw/${VERSION}/dist/config/tmux/default.sh"
+  ) [TMUX_CONFD="${HOME}/.tmux"]
+  ~~~
+
+  Install tmux plugins configurations (requires git and tmux installed):
+
+  ~~~sh
+  # plugins.conf
+  bash <(
+    # Can be changed to tag or commit ID
+    VERSION="master"
+    curl -V &>/dev/null && dl_tool=(curl -sfL) || dl_tool=(wget -qO-)
+    set -x; "${dl_tool[@]}" "https://raw.githubusercontent.com/spaghetti-coder/linux-helper/${VERSION}/dist/config/tmux/plugins.sh" \
+    || "${dl_tool[@]}" "https://bitbucket.org/kvedenskii/linux-scripts/raw/${VERSION}/dist/config/tmux/plugins.sh"
+  ) [TMUX_CONFD="${HOME}/.tmux"]
+  ~~~
+</details>  
+
+[To top]
+
 ## Libraries
 
 TODO
+
+[To top]
 
 ## Development
 
@@ -270,3 +323,7 @@ Compiler searches in the `src/*.sh` comments of type
 * `# .LH_NOSOURCE` comment in the lib file and following lines up to the end of file won't be included.
 
 The compiled files go to the `dist` directory
+
+[To top]
+
+[To top]: #top
