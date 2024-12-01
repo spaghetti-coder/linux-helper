@@ -190,6 +190,7 @@ ssh_gen() (
     SG_DIRNAME="${SG_DIRNAME:-${SG_HOSTNAME}}"
     SG_FILENAME="${SG_FILENAME:-${SG_USER}}"
 
+    SG_DEST_DIR="$(sed -e 's/\/*$//' <<< "${SG_DEST_DIR}")"
     SG_DEST_DIR_ALIAS="${SG_DEST_DIR}"
     if [[ -z "${SG_DEST_DIR:+x}" ]]; then
       SG_DEST_DIR="${HOME}/.ssh/${SG_DIRNAME}"
@@ -235,6 +236,7 @@ ssh_gen() (
 
     declare identity_file="${PK_PATH_ALIAS}"
     ${CUSTOM_DEST_DIR} && identity_file="$(realpath -m -- "${PK_PATH_ALIAS}")"
+    identity_file="${identity_file/${HOME}\//'~/'}"
 
     declare conf="
       # SSH host match pattern. Sample:
@@ -257,9 +259,9 @@ ssh_gen() (
       | (set -x; tee -- "${PK_CONFFILE_PATH}" >/dev/null) \
     && {
       # Include in ~/.ssh/config
-      grep -qFx -- "${confline}" "${ssh_conffile}" 2>/dev/null && return
 
       ${CUSTOM_DEST_DIR} && return
+      grep -qFx -- "${confline}" "${ssh_conffile}" 2>/dev/null && return
 
       printf -- '%s\n' "${confline}" | (set -x; tee -a -- "${ssh_conffile}" >/dev/null) || return
       GEN_RESULT[conffile_entry]=true
