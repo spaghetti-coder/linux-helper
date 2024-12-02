@@ -35,15 +35,15 @@ SOURCE_LINE="source-file ${CONFD_ALIAS}/plugins.conf"
   mkdir -p -- "${CONFD}" \
   && tee -- "${CONFD}/plugins.conf" <<< "${CONFIG}" >/dev/null \
   && {
-    grep -qFx -- "${SOURCE_LINE}" ~/.tmux.conf 2>/dev/null \
-    || printf -- '%s\n' "${SOURCE_LINE}" | tee -a ~/.tmux.conf >/dev/null
+    grep -qFx -- "${SOURCE_LINE}" "${HOME_DIR}/.tmux.conf" 2>/dev/null \
+    || printf -- '%s\n' "${SOURCE_LINE}" | tee -a -- "${HOME_DIR}/.tmux.conf" >/dev/null
   }
 )
 
 (
   set -x
-  rm -rf ~/.tmux/plugins/tpm
-  mkdir -p ~/.tmux/plugins
+  rm -rf -- "${HOME_DIR}/.tmux/plugins/tpm"
+  mkdir -p -- "${HOME_DIR}/.tmux/plugins"
 )
 
 SOURCE_LINE="source-file ${CONFD_ALIAS}/appendix.conf"
@@ -54,10 +54,10 @@ reload_src_cmd=(true)
 
 (
   set -o pipefail; set -x
-  git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm \
+  git clone https://github.com/tmux-plugins/tpm -- "${HOME_DIR}/.tmux/plugins/tpm" \
   && tee -- "${CONFD}/appendix.conf" <<< "${CONFIG_APPENDIX}" >/dev/null \
-  && sed -i -e '/^'"${SOURCE_LINE_REX}"'$/d' ~/.tmux.conf \
-  && tee -a ~/.tmux.conf <<< "${SOURCE_LINE}" >/dev/null \
+  && sed -i -e '/^'"${SOURCE_LINE_REX}"'$/d' -- "${HOME_DIR}/.tmux.conf" \
+  && tee -a "${HOME_DIR}/.tmux.conf" <<< "${SOURCE_LINE}" >/dev/null \
   && "${reload_src_cmd[@]}" \
   && ~/.tmux/plugins/tpm/scripts/install_plugins.sh
 )

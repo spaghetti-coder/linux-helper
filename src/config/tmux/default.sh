@@ -28,7 +28,7 @@ SOURCE_LINE="source-file ${CONFD_ALIAS}/default.conf"
   mkdir -p -- "${CONFD}" \
   && tee -- "${CONFD}/default.conf" <<< "${CONFIG}" >/dev/null \
   && {
-    grep -qFx -- "${SOURCE_LINE}" ~/.tmux.conf 2>/dev/null \
-    || printf -- '%s\n' "${SOURCE_LINE}" | tee -a ~/.tmux.conf >/dev/null
+    grep -qFx -- "${SOURCE_LINE}" "${HOME_DIR}/.tmux.conf" 2>/dev/null \
+    || printf -- '%s\n' "${SOURCE_LINE}" | tee -a -- "${HOME_DIR}/.tmux.conf" >/dev/null
   }
 )

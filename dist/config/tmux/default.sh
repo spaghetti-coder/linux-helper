@@ -24,6 +24,10 @@ if [[ -n "${SUDO_USER:+x}" ]]; then
   HOME_DIR="$(eval echo ~"${SUDO_USER}")"
 fi
 
+echo ${SUDO_USER}
+echo ${HOME_DIR}
+exit
+
 CONFD="${1:-${HOME_DIR}/.tmux}"
 CONFD="$(realpath -m -- "${CONFD}")"
 
@@ -38,7 +42,7 @@ SOURCE_LINE="source-file ${CONFD_ALIAS}/default.conf"
   mkdir -p -- "${CONFD}" \
   && tee -- "${CONFD}/default.conf" <<< "${CONFIG}" >/dev/null \
   && {
-    grep -qFx -- "${SOURCE_LINE}" ~/.tmux.conf 2>/dev/null \
-    || printf -- '%s\n' "${SOURCE_LINE}" | tee -a ~/.tmux.conf >/dev/null
+    grep -qFx -- "${SOURCE_LINE}" "${HOME_DIR}/.tmux.conf" 2>/dev/null \
+    || printf -- '%s\n' "${SOURCE_LINE}" | tee -a -- "${HOME_DIR}/.tmux.conf" >/dev/null
   }
 )
