@@ -33,9 +33,10 @@ compile_bash_project() (
       * Compile each file under SRC_DIR to same path of DEST_DIR
       * Replace '# .LH_SOURCE:path/to/lib.sh' comment lines with content of the
      ,  pointed libs, while path to the lib is relative to SRC_DIR directory
-      * Everything after '# .LH_NOSOURCE' comment in the sourced files is
-     ,  ignored for sourcing
-      * Sourced code is embraced with comment
+      * Everything after '# .LH_NOSOURCE' comment in the sourced files is ignored
+     , for sourcing
+      * Sourced code is wrapped with comment. To avoid wrapping use comment
+     ,  '# .LH_SOURCE_NW:path/to/lib.sh' or '# .LH_SOURCE_NOW_WRAP:path/to/lib.sh'
       * Shebang from the sourced files are removed in the resulting file
      ,
       USAGE:

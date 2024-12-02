@@ -34,18 +34,16 @@
 
 ## Config
 
-<a id="config/tmux"></a>
-<details><summary>config/tmux</summary>
+<a id="config/tmux/tmux-default.sh"></a>
+<details><summary>config/tmux/tmux-default.sh</summary>
+  <!-- .LH_ADHOC_USAGE:config/tmux/tmux-default.sh -->
+  <!-- .LH_HELP:config/tmux/tmux-default.sh -->
+</details>
 
-  `TMUX_CONFD` - tmux confd directory. To install to some system directory prefix the command with `sudo`.
-
-  To view the configurations pass `--info` flag as the first param to the scripts.
-
-  `default.conf`
-  <!-- .LH_ADHOC:config/tmux/default.sh [TMUX_CONFD="${HOME}/.tmux"] -->
-
-  `plugins.conf`, `appendix.conf` (requires git and tmux installed)
-  <!-- .LH_ADHOC:config/tmux/plugins.sh [TMUX_CONFD="${HOME}/.tmux"] -->
+<a id="config/tmux/tmux-plugins.sh"></a>
+<details><summary>config/tmux/tmux-plugins.sh</summary>
+  <!-- .LH_ADHOC_USAGE:config/tmux/tmux-plugins.sh -->
+  <!-- .LH_HELP:config/tmux/tmux-plugins.sh -->
 </details>  
 
 [To top]

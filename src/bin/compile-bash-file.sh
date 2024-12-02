@@ -25,7 +25,8 @@ compile_bash_file() (
      ,  pointed libs, while path to the lib is relative to LIBS_PATH directory
       * Everything after '# .LH_NOSOURCE' comment in the sourced files is
      ,  ignored for sourcing
-      * Sourced code is embraced with comment
+      * Sourced code is wrapped with comment. To avoid wrapping use
+     ,  '# .LH_SOURCE_NW:path/to/lib.sh' comment
       * Shebang from the sourced files are removed in the resulting file
      ,
       USAGE:
@@ -123,6 +124,8 @@ compile_bash_file() (
 
     # shellcheck disable=SC2034
     REPLACEMENT="$(
+      set -o pipefail
+
       # * Remove shebang
       # * Remove empty lines in the beginning of the file
       # * Up until stop-pattern
@@ -130,9 +133,9 @@ compile_bash_file() (
       sed -e '1{/^#!/d}' -- "${inc_file}" \
       | sed -e '/./,$!d' | sed -e '/./,$!d' \
       | sed '/^#\s*\.LH_NOSOURCE\s*/Q' | {
-        echo "# .LH_SOURCED: {{ ${file_path} }}"
+        ${LH_NO_WRAP:-false} || echo "# .LH_SOURCED: {{ ${file_path} }}"
         cat
-        echo "# .LH_SOURCED: {{/ ${file_path} }}"
+        ${LH_NO_WRAP:-false} || echo "# .LH_SOURCED: {{/ ${file_path} }}"
       }
     )"
   }
@@ -150,7 +153,9 @@ compile_bash_file() (
     declare dest_dir; dest_dir="$(dirname -- "${LH_PARAMS[DEST_FILE]}")"
     declare content; content="$( set -o pipefail
       cat -- "${LH_PARAMS[SRC_FILE]}" \
-      | replace_marker '.LH_SOURCE:' replace_callback '#'
+      | replace_marker '.LH_SOURCE:' replace_callback '#' \
+      | LH_NO_WRAP=true replace_marker '.LH_SOURCE_NW:' replace_callback '#' \
+      | LH_NO_WRAP=true replace_marker '.LH_SOURCE_NO_WRAP:' replace_callback '#'
     )" || return $?
 
     (set -x; mkdir -p -- "${dest_dir}") \

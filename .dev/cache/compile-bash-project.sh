@@ -14,6 +14,9 @@ text_nice() { text_trim <<< "${1-$(cat)}" | text_rmblank | sed -e 's/^,//'; }
 # https://stackoverflow.com/a/2705678
 escape_sed_expr()  { sed -e 's/[]\/$*.^[]/\\&/g' <<< "${1-$(cat)}"; }
 escape_sed_repl()  { sed -e 's/[\/&]/\\&/g' <<< "${1-$(cat)}"; }
+
+escape_single_quotes()  { declare str="${1-$(cat)}"; cat <<< "${str//\'/\'\\\'\'}"; }
+escape_double_quotes()  { declare str="${1-$(cat)}"; cat <<< "${str//\"/\"\\\"\"}"; }
 # .LH_SOURCED: {{/ lib/basic.sh }}
 
 # cat FILE | get_marker_lines MARKER REPLACE_CBK [COMMENT_PREFIX] [COMMENT_SUFFIX]
@@ -175,7 +178,8 @@ compile_bash_file() (
      ,  pointed libs, while path to the lib is relative to LIBS_PATH directory
       * Everything after '# .LH_NOSOURCE' comment in the sourced files is
      ,  ignored for sourcing
-      * Sourced code is embraced with comment
+      * Sourced code is wrapped with comment. To avoid wrapping use
+     ,  '# .LH_SOURCE_NW:path/to/lib.sh' comment
       * Shebang from the sourced files are removed in the resulting file
      ,
       USAGE:
@@ -273,6 +277,8 @@ compile_bash_file() (
 
     # shellcheck disable=SC2034
     REPLACEMENT="$(
+      set -o pipefail
+
       # * Remove shebang
       # * Remove empty lines in the beginning of the file
       # * Up until stop-pattern
@@ -280,9 +286,9 @@ compile_bash_file() (
       sed -e '1{/^#!/d}' -- "${inc_file}" \
       | sed -e '/./,$!d' | sed -e '/./,$!d' \
       | sed '/^#\s*\.LH_NOSOURCE\s*/Q' | {
-        echo "# .LH_SOURCED: {{ ${file_path} }}"
+        ${LH_NO_WRAP:-false} || echo "# .LH_SOURCED: {{ ${file_path} }}"
         cat
-        echo "# .LH_SOURCED: {{/ ${file_path} }}"
+        ${LH_NO_WRAP:-false} || echo "# .LH_SOURCED: {{/ ${file_path} }}"
       }
     )"
   }
@@ -300,7 +306,9 @@ compile_bash_file() (
     declare dest_dir; dest_dir="$(dirname -- "${LH_PARAMS[DEST_FILE]}")"
     declare content; content="$( set -o pipefail
       cat -- "${LH_PARAMS[SRC_FILE]}" \
-      | replace_marker '.LH_SOURCE:' replace_callback '#'
+      | replace_marker '.LH_SOURCE:' replace_callback '#' \
+      | LH_NO_WRAP=true replace_marker '.LH_SOURCE_NW:' replace_callback '#' \
+      | LH_NO_WRAP=true replace_marker '.LH_SOURCE_NO_WRAP:' replace_callback '#'
     )" || return $?
 
     (set -x; mkdir -p -- "${dest_dir}") \
@@ -348,9 +356,10 @@ compile_bash_project() (
       * Compile each file under SRC_DIR to same path of DEST_DIR
       * Replace '# .LH_SOURCE:path/to/lib.sh' comment lines with content of the
      ,  pointed libs, while path to the lib is relative to SRC_DIR directory
-      * Everything after '# .LH_NOSOURCE' comment in the sourced files is
-     ,  ignored for sourcing
-      * Sourced code is embraced with comment
+      * Everything after '# .LH_NOSOURCE' comment in the sourced files is ignored
+     , for sourcing
+      * Sourced code is wrapped with comment. To avoid wrapping use comment
+     ,  '# .LH_SOURCE_NW:path/to/lib.sh' or '# .LH_SOURCE_NOW_WRAP:path/to/lib.sh'
       * Shebang from the sourced files are removed in the resulting file
      ,
       USAGE:

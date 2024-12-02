@@ -33,7 +33,8 @@
     pointed libs, while path to the lib is relative to LIBS_PATH directory
   * Everything after '# .LH_NOSOURCE' comment in the sourced files is
     ignored for sourcing
-  * Sourced code is embraced with comment
+  * Sourced code is wrapped with comment. To avoid wrapping use
+    '# .LH_SOURCE_NW:path/to/lib.sh' comment
   * Shebang from the sourced files are removed in the resulting file
   
   USAGE:
@@ -170,9 +171,10 @@
   * Compile each file under SRC_DIR to same path of DEST_DIR
   * Replace '# .LH_SOURCE:path/to/lib.sh' comment lines with content of the
     pointed libs, while path to the lib is relative to SRC_DIR directory
-  * Everything after '# .LH_NOSOURCE' comment in the sourced files is
-    ignored for sourcing
-  * Sourced code is embraced with comment
+  * Everything after '# .LH_NOSOURCE' comment in the sourced files is ignored
+   for sourcing
+  * Sourced code is wrapped with comment. To avoid wrapping use comment
+    '# .LH_SOURCE_NW:path/to/lib.sh' or '# .LH_SOURCE_NOW_WRAP:path/to/lib.sh'
   * Shebang from the sourced files are removed in the resulting file
   
   USAGE:
@@ -247,14 +249,8 @@
 
 ## Config
 
-<a id="config/tmux"></a>
-<details><summary>config/tmux</summary>
-
-  `TMUX_CONFD` - tmux confd directory. To install to some system directory prefix the command with `sudo`.
-
-  To view the configurations pass `--info` flag as the first param to the scripts.
-
-  `default.conf`
+<a id="config/tmux/tmux-default.sh"></a>
+<details><summary>config/tmux/tmux-default.sh</summary>
   
   **AD HOC:**
   ~~~sh
@@ -263,13 +259,51 @@
   (
     VERSION='master'
     curl -V &>/dev/null && dl_tool=(curl -sL) || dl_tool=(wget -qO-)
-    set -x; "${dl_tool[@]}" "https://raw.githubusercontent.com/spaghetti-coder/linux-helper/${VERSION:-master}/dist/config/tmux/default.sh" \
-    || "${dl_tool[@]}" "https://bitbucket.org/kvedenskii/linux-scripts/raw/${VERSION:-master}/dist/config/tmux/default.sh"
-  ) | bash -s -- [TMUX_CONFD="${HOME}/.tmux"]
+    set -x; "${dl_tool[@]}" "https://raw.githubusercontent.com/spaghetti-coder/linux-helper/${VERSION:-master}/dist/config/tmux/tmux-default.sh" \
+    || "${dl_tool[@]}" "https://bitbucket.org/kvedenskii/linux-scripts/raw/${VERSION:-master}/dist/config/tmux/tmux-default.sh"
+  ) | bash -s -- \
+    [--] [CONFD="${HOME}/.tmux"]
   ~~~
   
+  
+  **MAN:**
+  ~~~
+  Generate basic tmux configuration preset and source it to ~/.tmux.conf file. The
+  config is with the following content:
+  
+  ```
+  # default.conf
+  set-option -g prefix C-Space
+  set-option -g allow-rename off
+  set -g history-limit 100000
+  set -g renumber-windows on
+  set -g base-index 1
+  set -g display-panes-time 3000
+  setw -g pane-base-index 1
+  setw -g aggressive-resize on
+  ```
+  
+  USAGE:
+  =====
+  tmux-default.sh [--] [CONFD="${HOME}/.tmux"]
+  
+  PARAMS:
+  ======
+  CONFD   Confd directory to store tmux custom configurations
+  
+  DEMO:
+  ====
+  # Generate with all defaults to ~/.tmux/default.conf
+  tmux-default.sh
+  
+  # Generate to /etc/tmux/default.conf. Requires sudo for non-root user
+  sudo tmux-default.sh /etc/tmux
+  ~~~
+  
+</details>
 
-  `plugins.conf`, `appendix.conf` (requires git and tmux installed)
+<a id="config/tmux/tmux-plugins.sh"></a>
+<details><summary>config/tmux/tmux-plugins.sh</summary>
   
   **AD HOC:**
   ~~~sh
@@ -278,9 +312,50 @@
   (
     VERSION='master'
     curl -V &>/dev/null && dl_tool=(curl -sL) || dl_tool=(wget -qO-)
-    set -x; "${dl_tool[@]}" "https://raw.githubusercontent.com/spaghetti-coder/linux-helper/${VERSION:-master}/dist/config/tmux/plugins.sh" \
-    || "${dl_tool[@]}" "https://bitbucket.org/kvedenskii/linux-scripts/raw/${VERSION:-master}/dist/config/tmux/plugins.sh"
-  ) | bash -s -- [TMUX_CONFD="${HOME}/.tmux"]
+    set -x; "${dl_tool[@]}" "https://raw.githubusercontent.com/spaghetti-coder/linux-helper/${VERSION:-master}/dist/config/tmux/tmux-plugins.sh" \
+    || "${dl_tool[@]}" "https://bitbucket.org/kvedenskii/linux-scripts/raw/${VERSION:-master}/dist/config/tmux/tmux-plugins.sh"
+  ) | bash -s -- \
+    [--] [CONFD="${HOME}/.tmux"]
+  ~~~
+  
+  
+  **MAN:**
+  ~~~
+  Generate plugins tmux configuration preset and source it to ~/.tmux.conf file.
+  tmux and git are required to be installed for this script. The configs are with
+  the following content:
+  
+  ```
+  # plugins.conf
+  set -g @plugin 'tmux-plugins/tpm'
+  set -g @plugin 'tmux-plugins/tmux-sensible'
+  set -g @plugin 'tmux-plugins/tmux-resurrect'
+  set -g @plugin 'tmux-plugins/tmux-sidebar'
+  # set-environment -g TMUX_PLUGIN_MANAGER_PATH '~/.tmux/plugins'
+  # run -b '~/.tmux/plugins/tpm/tpm'
+  ```
+  
+  ```
+  # appendix.conf
+  set-environment -g TMUX_PLUGIN_MANAGER_PATH '~/.tmux/plugins'
+  run -b '~/.tmux/plugins/tpm/tpm'
+  ```
+  
+  USAGE:
+  =====
+  tmux-plugins.sh [--] [CONFD="${HOME}/.tmux"]
+  
+  PARAMS:
+  ======
+  CONFD   Confd directory to store tmux custom configurations
+  
+  DEMO:
+  ====
+  # Generate with all defaults to ~/.tmux/{appendix,plugins}.conf
+  tmux-plugins.sh
+  
+  # Generate to /etc/tmux/{appendix,plugins}.conf. Requires sudo for non-root user
+  sudo tmux-plugins.sh /etc/tmux
   ~~~
   
 </details>  
