@@ -290,8 +290,6 @@ compile_bash_project() (
     text_nice "
       Shortcut for compile-bash-file.sh.
      ,
-      IMPORTANT: DEST_DIR gets deleted in the beginning of processing.
-     ,
       Compile bash project. Processing:
       * Compile each file under SRC_DIR to same path of DEST_DIR
       * Replace '# .LH_SOURCE:path/to/lib.sh' comment lines with content of the
@@ -411,8 +409,6 @@ compile_bash_project() (
     }
 
     echo "# ===== ${SELF}: compiling ${SRC_DIR} => ${DEST_DIR}" >&2
-
-    (set -x; rm -rf "${DEST_DIR}")
 
     declare suffix
     declare dest

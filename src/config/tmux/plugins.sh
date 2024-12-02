@@ -21,7 +21,7 @@ HEREDOC_END
 )"
 
 [[ "${1}" == --info ]] && {
-  echo "${CONFIG}"$'\n'"${CONFIG_APPENDIX}"
+  echo "${CONFIG}"$'\n'$'\n'"${CONFIG_APPENDIX}"
   exit
 }
 

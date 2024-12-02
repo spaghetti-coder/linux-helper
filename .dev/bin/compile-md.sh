@@ -47,27 +47,31 @@ replace_help_cbk() {
 # shellcheck disable=SC2016
 replace_adhoc_cbk() {
   declare file; file="$(cut -d' ' -f1 <<< "${1} ")"
-  declare params
+  declare params; params="$(cut -d' ' -f2- <<< "${1} " | text_trim)"
 
-  params="$(
-    (set -x; "${DIST_DIR}/${1}" --help usage) \
-    | cut -d ' ' -f2- | text_ltrim | sed 's/^/,  /' | text_ltrim
-  )"
-  if [[ -n "${params}" ]]; then
-    params=" \\"$'\n'"${params}"
+  if ${RAPLACE_ADHOC_USAGE:-false}; then
+    params="$(
+      (set -x; "${DIST_DIR}/${1}" --help usage) \
+      | cut -d ' ' -f2- | text_ltrim | sed 's/^/,  /' | text_ltrim
+    )"
+    if [[ -n "${params}" ]]; then
+      params=" \\"$'\n'"${params}"
+    fi
+  elif [[ -n "${params}" ]]; then
+    params=" ${params}"
   fi
 
   REPLACEMENT=$'\n'"$(text_nice '
     **AD HOC:**
     ~~~sh
-    # Review and change input params
-    bash <(
-   ,  # Can be changed to tag or commit ID
-   ,  VERSION="'"${BASE_VERSION}"'"
+    # Review and change input params (after "bash -s --")
+    # VERSION can be changed to any treeish
+    (
+   ,  VERSION='"'${BASE_VERSION}'"'
    ,  curl -V &>/dev/null && dl_tool=(curl -sL) || dl_tool=(wget -qO-)
-   ,  set -x; "${dl_tool[@]}" "'"${BASE_RAW_URL}/\${VERSION}/dist/${file}"'" \
-   ,  || "${dl_tool[@]}" "'"${BASE_RAW_URL_ALT}/\${VERSION}/dist/${file}"'"
-    )'"${params}"'
+   ,  set -x; "${dl_tool[@]}" "'"${BASE_RAW_URL}/\${VERSION:-master}/dist/${file}"'" \
+   ,  || "${dl_tool[@]}" "'"${BASE_RAW_URL_ALT}/\${VERSION:-master}/dist/${file}"'"
+    ) | bash -s --'"${params}"'
     ~~~
   ')"$'\n'
 }
@@ -85,14 +89,14 @@ replace_base_raw_url() {
   )
 }
 
-
 RC=0
 
 (
   set -o pipefail
   cat -- "${SRC_MD}" \
   | replace_marker '.LH_HELP:' replace_help_cbk '<!--' '-->' \
-  | replace_marker '.LH_ADHOC:' replace_adhoc_cbk '<!--' '-->' \
+  | RAPLACE_ADHOC_USAGE=true replace_marker '.LH_ADHOC_USAGE:' replace_adhoc_cbk '<!--' '-->' \
+  | RAPLACE_ADHOC_USAGE=false replace_marker '.LH_ADHOC:' replace_adhoc_cbk '<!--' '-->' \
   | replace_base_raw_url \
   | (set -x; tee -- "${DEST_MD}" >/dev/null)
 ) || RC=1
