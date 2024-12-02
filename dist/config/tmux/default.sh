@@ -20,13 +20,11 @@ HEREDOC_END
 }
 # .LH_SOURCED: {{ config/tmux/base.ignore.sh }}
 HOME_DIR="${HOME}"
-if [[ -n "${SUDO_USER:+x}" ]]; then
+IS_PRIVILEGED=false
+if [[ -n "${SUDO_USER:+x}" ]] && [[ "$(id -u)" -eq 0 ]]; then
   HOME_DIR="$(eval echo ~"${SUDO_USER}")"
+  IS_PRIVILEGED=true
 fi
-
-echo ${SUDO_USER}
-echo ${HOME_DIR}
-exit
 
 CONFD="${1:-${HOME_DIR}/.tmux}"
 CONFD="$(realpath -m -- "${CONFD}")"
