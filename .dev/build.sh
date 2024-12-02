@@ -11,7 +11,7 @@ DEST_DIR="${PROJ_DIR}/dist"
 get_bash_compiler() {
   declare compiler
 
-  if compiler="$(set -x; cat -- "${DEST_DIR}/short/compile-bash-project.sh" 2>/dev/null)"; then
+  if compiler="$(set -x; cat -- "${DEST_DIR}/short/compile-bash-project.sh")"; then
     (set -x; tee -- "${SELF_DIR}/cache/compile-bash-project.sh" <<< "${compiler}" >/dev/null) || return $?
   fi
 
@@ -20,8 +20,10 @@ get_bash_compiler() {
 
 RC=0
 
+compiler="$(get_bash_compiler)" || exit $?
+(set -x; rm -rf -- "${DEST_DIR}")
 ( set -o pipefail
-  get_bash_compiler | bash <(cat) --no-ext '.ignore.sh' -- "${SRC_DIR}" "${DEST_DIR}"
+  bash <(cat <<< "${compiler}") --no-ext '.ignore.sh' -- "${SRC_DIR}" "${DEST_DIR}"
 ) || RC=1
 
 "${SELF_DIR}/bin/compile-md.sh" || RC=1

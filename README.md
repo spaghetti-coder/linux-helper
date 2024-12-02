@@ -14,14 +14,14 @@
   
   **AD HOC:**
   ~~~sh
-  # Review and change input params
-  bash <(
-    # Can be changed to tag or commit ID
-    VERSION="master"
+  # Review and change input params (after "bash -s --")
+  # VERSION can be changed to any treeish
+  (
+    VERSION='master'
     curl -V &>/dev/null && dl_tool=(curl -sL) || dl_tool=(wget -qO-)
-    set -x; "${dl_tool[@]}" "https://raw.githubusercontent.com/spaghetti-coder/linux-helper/${VERSION}/dist/bin/compile-bash-file.sh" \
-    || "${dl_tool[@]}" "https://bitbucket.org/kvedenskii/linux-scripts/raw/${VERSION}/dist/bin/compile-bash-file.sh"
-  ) \
+    set -x; "${dl_tool[@]}" "https://raw.githubusercontent.com/spaghetti-coder/linux-helper/${VERSION:-master}/dist/bin/compile-bash-file.sh" \
+    || "${dl_tool[@]}" "https://bitbucket.org/kvedenskii/linux-scripts/raw/${VERSION:-master}/dist/bin/compile-bash-file.sh"
+  ) | bash -s -- \
     [--] SRC_FILE DEST_FILE LIBS_PATH
   ~~~
   
@@ -88,14 +88,14 @@
   
   **AD HOC:**
   ~~~sh
-  # Review and change input params
-  bash <(
-    # Can be changed to tag or commit ID
-    VERSION="master"
+  # Review and change input params (after "bash -s --")
+  # VERSION can be changed to any treeish
+  (
+    VERSION='master'
     curl -V &>/dev/null && dl_tool=(curl -sL) || dl_tool=(wget -qO-)
-    set -x; "${dl_tool[@]}" "https://raw.githubusercontent.com/spaghetti-coder/linux-helper/${VERSION}/dist/bin/ssh-gen.sh" \
-    || "${dl_tool[@]}" "https://bitbucket.org/kvedenskii/linux-scripts/raw/${VERSION}/dist/bin/ssh-gen.sh"
-  ) \
+    set -x; "${dl_tool[@]}" "https://raw.githubusercontent.com/spaghetti-coder/linux-helper/${VERSION:-master}/dist/bin/ssh-gen.sh" \
+    || "${dl_tool[@]}" "https://bitbucket.org/kvedenskii/linux-scripts/raw/${VERSION:-master}/dist/bin/ssh-gen.sh"
+  ) | bash -s -- \
     [--port PORT='22'] [--host HOST=HOSTNAME] \
     [--comment COMMENT="$(id -un)@$(hostname -f)"] [--dirname DIRNAME=HOSTNAME] \
     [--filename FILENAME=USER] [--dest-dir DEST_DIR="${HOME}/.ssh/"HOSTNAME] \
@@ -149,14 +149,14 @@
   
   **AD HOC:**
   ~~~sh
-  # Review and change input params
-  bash <(
-    # Can be changed to tag or commit ID
-    VERSION="master"
+  # Review and change input params (after "bash -s --")
+  # VERSION can be changed to any treeish
+  (
+    VERSION='master'
     curl -V &>/dev/null && dl_tool=(curl -sL) || dl_tool=(wget -qO-)
-    set -x; "${dl_tool[@]}" "https://raw.githubusercontent.com/spaghetti-coder/linux-helper/${VERSION}/dist/short/compile-bash-project.sh" \
-    || "${dl_tool[@]}" "https://bitbucket.org/kvedenskii/linux-scripts/raw/${VERSION}/dist/short/compile-bash-project.sh"
-  ) \
+    set -x; "${dl_tool[@]}" "https://raw.githubusercontent.com/spaghetti-coder/linux-helper/${VERSION:-master}/dist/short/compile-bash-project.sh" \
+    || "${dl_tool[@]}" "https://bitbucket.org/kvedenskii/linux-scripts/raw/${VERSION:-master}/dist/short/compile-bash-project.sh"
+  ) | bash -s -- \
     [--ext EXT='.sh']... [--no-ext NO_EXT]... [--] \
     SRC_DIR DEST_DIR
   ~~~
@@ -165,8 +165,6 @@
   **MAN:**
   ~~~
   Shortcut for compile-bash-file.sh.
-  
-  IMPORTANT: DEST_DIR gets deleted in the beginning of processing.
   
   Compile bash project. Processing:
   * Compile each file under SRC_DIR to same path of DEST_DIR
@@ -204,14 +202,14 @@
   
   **AD HOC:**
   ~~~sh
-  # Review and change input params
-  bash <(
-    # Can be changed to tag or commit ID
-    VERSION="master"
+  # Review and change input params (after "bash -s --")
+  # VERSION can be changed to any treeish
+  (
+    VERSION='master'
     curl -V &>/dev/null && dl_tool=(curl -sL) || dl_tool=(wget -qO-)
-    set -x; "${dl_tool[@]}" "https://raw.githubusercontent.com/spaghetti-coder/linux-helper/${VERSION}/dist/short/ssh-gen-github.sh" \
-    || "${dl_tool[@]}" "https://bitbucket.org/kvedenskii/linux-scripts/raw/${VERSION}/dist/short/ssh-gen-github.sh"
-  ) \
+    set -x; "${dl_tool[@]}" "https://raw.githubusercontent.com/spaghetti-coder/linux-helper/${VERSION:-master}/dist/short/ssh-gen-github.sh" \
+    || "${dl_tool[@]}" "https://bitbucket.org/kvedenskii/linux-scripts/raw/${VERSION:-master}/dist/short/ssh-gen-github.sh"
+  ) | bash -s -- \
     [--host HOST='github.com'] \
     [--comment COMMENT="$(id -un)@$(hostname -f)"] [--] [ACCOUNT='git']
   ~~~
@@ -256,31 +254,35 @@
 
   To view the configurations pass `--info` flag as the first param to the scripts.
 
-  Install tmux basic configurations.
-
+  `default.conf`
+  
+  **AD HOC:**
   ~~~sh
-  # default.conf
-  bash <(
-    # Can be changed to tag or commit ID
-    VERSION="master"
-    curl -V &>/dev/null && dl_tool=(curl -sfL) || dl_tool=(wget -qO-)
-    set -x; "${dl_tool[@]}" "https://raw.githubusercontent.com/spaghetti-coder/linux-helper/${VERSION}/dist/config/tmux/default.sh" \
-    || "${dl_tool[@]}" "https://bitbucket.org/kvedenskii/linux-scripts/raw/${VERSION}/dist/config/tmux/default.sh"
-  ) [TMUX_CONFD="${HOME}/.tmux"]
+  # Review and change input params (after "bash -s --")
+  # VERSION can be changed to any treeish
+  (
+    VERSION='master'
+    curl -V &>/dev/null && dl_tool=(curl -sL) || dl_tool=(wget -qO-)
+    set -x; "${dl_tool[@]}" "https://raw.githubusercontent.com/spaghetti-coder/linux-helper/${VERSION:-master}/dist/config/tmux/default.sh" \
+    || "${dl_tool[@]}" "https://bitbucket.org/kvedenskii/linux-scripts/raw/${VERSION:-master}/dist/config/tmux/default.sh"
+  ) | bash -s -- [TMUX_CONFD="${HOME}/.tmux"]
   ~~~
+  
 
-  Install tmux plugins configurations (requires git and tmux installed):
-
+  `plugins.conf`, `appendix.conf` (requires git and tmux installed)
+  
+  **AD HOC:**
   ~~~sh
-  # plugins.conf
-  bash <(
-    # Can be changed to tag or commit ID
-    VERSION="master"
-    curl -V &>/dev/null && dl_tool=(curl -sfL) || dl_tool=(wget -qO-)
-    set -x; "${dl_tool[@]}" "https://raw.githubusercontent.com/spaghetti-coder/linux-helper/${VERSION}/dist/config/tmux/plugins.sh" \
-    || "${dl_tool[@]}" "https://bitbucket.org/kvedenskii/linux-scripts/raw/${VERSION}/dist/config/tmux/plugins.sh"
-  ) [TMUX_CONFD="${HOME}/.tmux"]
+  # Review and change input params (after "bash -s --")
+  # VERSION can be changed to any treeish
+  (
+    VERSION='master'
+    curl -V &>/dev/null && dl_tool=(curl -sL) || dl_tool=(wget -qO-)
+    set -x; "${dl_tool[@]}" "https://raw.githubusercontent.com/spaghetti-coder/linux-helper/${VERSION:-master}/dist/config/tmux/plugins.sh" \
+    || "${dl_tool[@]}" "https://bitbucket.org/kvedenskii/linux-scripts/raw/${VERSION:-master}/dist/config/tmux/plugins.sh"
+  ) | bash -s -- [TMUX_CONFD="${HOME}/.tmux"]
   ~~~
+  
 </details>  
 
 [To top]
@@ -306,20 +308,14 @@ In order to configure local git hooks, issue inside the repository root director
 Code compilation happens on `pre-commit`. It can be done manually by issuing:
 
 ```sh
-./.dev/compile.sh
+./.dev/build.sh
 ```
 
-Compiler searches in the `src/*.sh` comments of type
+This triggers:
 
-```sh
-# .LH_SOURCE:lib/basic.sh
-```
-
-* `# .LH_SOURCE:` is the marker for replacing this comment with a library code. Must be in the very beginning of the line.
-* `lib/basic.sh` is path to the file that will be included. The path is within `src` directory.
-* `# .LH_NOSOURCE` comment in the lib file and following lines up to the end of file won't be included.
-
-The compiled files go to the `dist` directory
+* `short/compile-bash-project.sh src dest --no-ext '.ignore.sh'`
+* custom `*.md` files compilation
+  * TODO: describe
 
 [To top]
 
