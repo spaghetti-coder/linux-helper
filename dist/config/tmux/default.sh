@@ -37,16 +37,14 @@ SOURCE_LINE="source-file ${CONFD_ALIAS}/default.conf"
 declare -a owner_tmux_prefix=(tee -a --)
 
 declare -a owner_tmux_cmd=("${owner_tmux_prefix[@]}" "${HOME_DIR}/.tmux.conf")
-${IS_PRIVILEGED} && owner_tmux_cmd=(su -l "${SUDO_USER}" -c "${owner_tmux_prefix[*]} '${HOME_DIR}/.tmux.conf'")
+${IS_PRIVILEGED} && owner_tmux_cmd=(su -l "${SUDO_USER}" -c "umask 0066; ${owner_tmux_prefix[*]} '${HOME_DIR}/.tmux.conf'")
 
-(
+( set -x
   umask 0002
-
-  set -x
   mkdir -p -- "${CONFD}" \
   && tee -- "${CONFD}/default.conf" <<< "${CONFIG}" >/dev/null \
   && {
     grep -qFx -- "${SOURCE_LINE}" "${HOME_DIR}/.tmux.conf" 2>/dev/null \
-    || printf -- '%s\n' "${SOURCE_LINE}" | "${owner_tmux_cmd[@]}" >/dev/null
+    || printf -- '%s\n' "${SOURCE_LINE}" | { umask 0066; "${owner_tmux_cmd[@]}" >/dev/null; }
   }
 )
