@@ -28,11 +28,15 @@ HEREDOC_END
 # .LH_SOURCED: {{ lib/system.sh }}
 is_user_root() { [[ "$(id -u)" -eq 0 ]]; }
 is_user_privileged() { is_user_root && [[ -n "${SUDO_USER}" ]]; }
+
+privileged_user_home() { eval echo ~"${SUDO_USER}"; }
 # .LH_SOURCED: {{/ lib/system.sh }}
 
 HOME_DIR="${HOME}"
+INSTALLED_FILES_UMASK=0066
 if is_user_privileged; then
-  HOME_DIR="$(eval echo ~"${SUDO_USER}")"
+  HOME_DIR="$(privileged_user_home)"
+  INSTALLED_FILES_UMASK=0022
 fi
 
 CONFD="${1:-${HOME_DIR}/.tmux}"
