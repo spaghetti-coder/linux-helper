@@ -19,11 +19,14 @@ HEREDOC_END
   exit
 }
 # .LH_SOURCED: {{ config/tmux/base.ignore.sh }}
+# .LH_SOURCED: {{ lib/system.sh }}
+is_user_root() { [[ "$(id -u)" -eq 0 ]]; }
+is_user_privileged() { is_user_root && [[ -n "${SUDO_USER}" ]]; }
+# .LH_SOURCED: {{/ lib/system.sh }}
+
 HOME_DIR="${HOME}"
-IS_PRIVILEGED=false
-if [[ -n "${SUDO_USER:+x}" ]] && [[ "$(id -u)" -eq 0 ]]; then
+if is_user_privileged; then
   HOME_DIR="$(eval echo ~"${SUDO_USER}")"
-  IS_PRIVILEGED=true
 fi
 
 CONFD="${1:-${HOME_DIR}/.tmux}"
@@ -35,12 +38,16 @@ CONFD_ALIAS="${CONFD/${HOME_DIR}\//'~/'}"
 SOURCE_LINE="source-file ${CONFD_ALIAS}/default.conf"
 
 declare -a owner_tmux_prefix=(tee -a --)
-
 declare -a owner_tmux_cmd=("${owner_tmux_prefix[@]}" "${HOME_DIR}/.tmux.conf")
-${IS_PRIVILEGED} && owner_tmux_cmd=(su -l "${SUDO_USER}" -c "umask 0066; ${owner_tmux_prefix[*]} '${HOME_DIR}/.tmux.conf'")
+declare source_umask=0066
+
+if is_user_privileged; then
+  owner_tmux_cmd=(su -l "${SUDO_USER}" -c "umask 0066; ${owner_tmux_prefix[*]} '${HOME_DIR}/.tmux.conf'")
+  source_umask=0002
+fi
 
 ( set -x
-  umask 0002
+  umask -- "${source_umask}"
   mkdir -p -- "${CONFD}" \
   && tee -- "${CONFD}/default.conf" <<< "${CONFIG}" >/dev/null \
   && {

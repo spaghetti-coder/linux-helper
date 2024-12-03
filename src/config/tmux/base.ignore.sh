@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 
+# .LH_SOURCE:lib/system.sh
+
 HOME_DIR="${HOME}"
-IS_PRIVILEGED=false
-if [[ -n "${SUDO_USER:+x}" ]] && [[ "$(id -u)" -eq 0 ]]; then
+if is_user_privileged; then
   HOME_DIR="$(eval echo ~"${SUDO_USER}")"
-  IS_PRIVILEGED=true
 fi
 
 CONFD="${1:-${HOME_DIR}/.tmux}"

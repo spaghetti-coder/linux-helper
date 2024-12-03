@@ -25,11 +25,14 @@ HEREDOC_END
   exit
 }
 # .LH_SOURCED: {{ config/tmux/base.ignore.sh }}
+# .LH_SOURCED: {{ lib/system.sh }}
+is_user_root() { [[ "$(id -u)" -eq 0 ]]; }
+is_user_privileged() { is_user_root && [[ -n "${SUDO_USER}" ]]; }
+# .LH_SOURCED: {{/ lib/system.sh }}
+
 HOME_DIR="${HOME}"
-IS_PRIVILEGED=false
-if [[ -n "${SUDO_USER:+x}" ]] && [[ "$(id -u)" -eq 0 ]]; then
+if is_user_privileged; then
   HOME_DIR="$(eval echo ~"${SUDO_USER}")"
-  IS_PRIVILEGED=true
 fi
 
 CONFD="${1:-${HOME_DIR}/.tmux}"
