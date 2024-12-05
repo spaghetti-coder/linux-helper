@@ -3,13 +3,12 @@
 # .LH_SOURCE:bin/compile-bash-file.sh
 # .LH_SOURCE:lib/basic.sh
 # .LH_SOURCE:lib/text.sh
+# .LH_SOURCE:base.ignore.sh
 
 # shellcheck disable=SC2317
 compile_bash_project() (
   declare SELF="${FUNCNAME[0]}"
 
-  declare SRC_DIR
-  declare DEST_DIR
   declare -a EXTS
   declare -a NO_EXTS
 
@@ -19,7 +18,7 @@ compile_bash_project() (
 
   print_help_usage() {
     echo "
-      ${THE_SCRIPT} [--ext EXT='.sh'...] [--no-ext EXT=''...] [--] \\
+      ${THE_SCRIPT} [--ext EXT='.sh']... [--no-ext NO_EXT]... [--] \\
      ,  SRC_DIR DEST_DIR
     "
   }
@@ -64,49 +63,42 @@ compile_bash_project() (
       ====
       # Compile all '.sh' and '.bash' files under 'src' directory to 'dest'
       # excluding files with '.hidden.sh' and '.secret.sh' extensions
-      ${THE_SCRIPT} ./src ./dest --ext '.sh' --ext='.bash' \\
-     ,  --no-ext '.hidden.sh' --no-ext='.secret.sh'
+      ${THE_SCRIPT} ./src ./dest --ext '.sh' --ext '.bash' \\
+     ,  --no-ext '.hidden.sh' --no-ext '.secret.sh'
     "
   }
 
   parse_params() {
     declare -a args
 
+    lh_params_reset
+
     declare endopts=false
     declare param
     while [[ ${#} -gt 0 ]]; do
       ${endopts} && param='*' || param="${1}"
 
+      # shellcheck disable=SC2015
       case "${param}" in
         --            ) endopts=true ;;
         -\?|-h|--help ) print_help "${@:2}"; exit ;;
-        --ext         ) EXTS+=("${2}"); shift ;;
-        --ext=*       ) EXTS+=("${1#*=}") ;;
-        --no-ext      ) NO_EXTS+=("${2}"); shift ;;
-        --no-ext=*    ) NO_EXTS+=("${1#*=}") ;;
+        --ext         ) [[ -n "${2+x}" ]] && EXTS+=("${2}") || lh_params_noval EXT; shift ;;
+        --no-ext      ) [[ -n "${2+x}" ]] && NO_EXTS+=("${2}") || lh_params_noval NO_EXT; shift ;;
+        -*            ) lh_params_unsupported "${1}" ;;
         *             ) args+=("${1}") ;;
       esac
 
       shift
     done
 
-    [[ ${#args[@]} -gt 0 ]] && SRC_DIR="${args[0]}"
-    [[ ${#args[@]} -gt 1 ]] && DEST_DIR="${args[1]}"
-    [[ ${#args[@]} -lt 3 ]] || {
-      ERRBAG+=(
-        "Unsupported params:"
-        "$(printf -- '* %s\n' "${args[@]:2}")"
-      )
-
-      return 1
-    }
+    [[ ${#args[@]} -gt 0 ]] && lh_param_set SRC_DIR "$(sed -e 's/\/*$//' <<< "${args[0]}")"
+    [[ ${#args[@]} -gt 1 ]] && lh_param_set DEST_DIR "$(sed -e 's/\/*$//' <<< "${args[1]}")"
+    [[ ${#args[@]} -lt 3 ]] || lh_params_unsupported "${args[@]:2}"
   }
 
-  validate_required_args() {
-    declare rc=0
-    [[ -n "${SRC_DIR}" ]] || { rc=1; ERRBAG+=("SRC_DIR is required"); }
-    [[ -n "${DEST_DIR}" ]] || { rc=1; ERRBAG+=("DEST_DIR is required"); }
-    return "${rc}"
+  check_required_params() {
+    [[ -n "${LH_PARAMS[SRC_DIR]}" ]]  || lh_params_noval SRC_DIR
+    [[ -n "${LH_PARAMS[DEST_DIR]}" ]] || lh_params_noval DEST_DIR;
   }
 
   flush_errbag() {
@@ -116,10 +108,6 @@ compile_bash_project() (
 
   apply_defaults() {
     [[ ${#EXTS[@]} -gt 0 ]] || EXTS=('.sh')
-
-    # Remove trailing slash if any
-    SRC_DIR="${SRC_DIR%/}"
-    DEST_DIR="${DEST_DIR%/}"
   }
 
   populate_src_files() {
@@ -134,7 +122,7 @@ compile_bash_project() (
       no_ext_ptn+=${no_ext_ptn:+$'\n'}".*$(escape_sed_expr "${ext}")\$"
     done
 
-    declare src_files; src_files="$(find "${SRC_DIR}")" || return $?
+    declare src_files; src_files="$(find "${LH_PARAMS[SRC_DIR]}")" || return $?
     src_files="$(sort -n <<< "${src_files}" | grep -if <(cat <<< "${ext_ptn}"))" || return 0
     if [[ -n "${no_ext_ptn+x}" ]]; then
       src_files="$(grep -ivf <(cat <<< "${no_ext_ptn}") <<< "${src_files}" | grep '')" || return 0
@@ -145,9 +133,13 @@ compile_bash_project() (
 
   main() {
     # shellcheck disable=SC2015
-    parse_params "${@}" \
-    && validate_required_args \
-    || { flush_errbag; return 1; }
+    parse_params "${@}"
+    check_required_params
+
+    lh_params_flush_invalid >&2 && {
+      echo "FATAL (${SELF})" >&2
+      return 1
+    }
 
     apply_defaults
     populate_src_files || return $?
@@ -157,25 +149,25 @@ compile_bash_project() (
       return
     }
 
-    echo "# ===== ${SELF}: compiling ${SRC_DIR} => ${DEST_DIR}" >&2
+    echo "# ===== ${SELF}: compiling ${LH_PARAMS[SRC_DIR]} => ${LH_PARAMS[DEST_DIR]}" >&2
 
-    (set -x; rm -rf "${DEST_DIR}")
+    (set -x; rm -rf "${LH_PARAMS[DEST_DIR]}")
 
     declare suffix
     declare dest
     declare rc=0
     declare src; for src in "${SRC_FILES[@]}"; do
-      suffix="$(realpath -m --relative-to "${SRC_DIR}" -- "${src}")" || {
+      suffix="$(realpath -m --relative-to "${LH_PARAMS[SRC_DIR]}" -- "${src}")" || {
         rc=1
         continue
       }
 
-      dest="${DEST_DIR}/${suffix}"
+      dest="${LH_PARAMS[DEST_DIR]}/${suffix}"
       printf -- '# COMPILING: %s => %s\n' "${src}" "${dest}"
       (
         set -o pipefail
         (
-          compile_bash_file -- "${src}" "${dest}" "${SRC_DIR}" 3>&2 2>&1 1>&3
+          compile_bash_file -- "${src}" "${dest}" "${LH_PARAMS[SRC_DIR]}" 3>&2 2>&1 1>&3
         ) | sed -e 's/^/  /'
       ) 3>&2 2>&1 1>&3 && {
         printf -- '# OK: %s\n' "${src}"

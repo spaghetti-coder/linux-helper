@@ -2,16 +2,13 @@
 
 # .LH_SOURCE:lib/text.sh
 # .LH_SOURCE:partial/replace-marker.sh
+# .LH_SOURCE:base.ignore.sh
 
 # shellcheck disable=SC2317
 compile_bash_file() (
   declare SELF="${FUNCNAME[0]}"
 
-  declare SRC_FILE
-  declare DEST_FILE
   declare LIBS_PATH
-
-  declare -a ERRBAG
 
   print_help_usage() {
     echo "${THE_SCRIPT} [--] SRC_FILE DEST_FILE LIBS_PATH"
@@ -86,6 +83,8 @@ compile_bash_file() (
   parse_params() {
     declare -a args
 
+    lh_params_reset
+
     declare endopts=false
     declare param
     while [[ ${#} -gt 0 ]]; do
@@ -94,50 +93,37 @@ compile_bash_file() (
       case "${param}" in
         --            ) endopts=true ;;
         -\?|-h|--help ) print_help "${@:2}"; exit ;;
+        -*            ) lh_params_unsupported "${1}" ;;
         *             ) args+=("${1}") ;;
       esac
 
       shift
     done
 
-    [[ ${#args[@]} -gt 0 ]] && SRC_FILE="${args[0]}"
-    [[ ${#args[@]} -gt 1 ]] && DEST_FILE="${args[1]}"
-    [[ ${#args[@]} -gt 2 ]] && LIBS_PATH="${args[2]}"
-    [[ ${#args[@]} -lt 4 ]] || {
-      ERRBAG+=(
-        "Unsupported params:"
-        "$(printf -- '* %s\n' "${args[@]:3}")"
-      )
-
-      return 1
-    }
+    [[ ${#args[@]} -gt 0 ]] && lh_param_set SRC_FILE "${args[0]}"
+    [[ ${#args[@]} -gt 1 ]] && lh_param_set DEST_FILE "${args[1]}"
+    [[ ${#args[@]} -gt 2 ]] && lh_param_set LIBS_PATH "$(sed -e 's/\/*$//' <<< "${args[2]}")"
+    [[ ${#args[@]} -lt 4 ]] || lh_params_unsupported "${args[@]:3}"
   }
 
-  validate_required_args() {
-    declare rc=0
-    [[ -n "${SRC_FILE}" ]] || { rc=1; ERRBAG+=("SRC_FILE is required"); }
-    [[ -n "${DEST_FILE}" ]] || { rc=1; ERRBAG+=("DEST_FILE is required"); }
-    [[ -n "${LIBS_PATH}" ]] || { rc=1; ERRBAG+=("LIBS_PATH is required"); }
-    return "${rc}"
-  }
-
-  flush_errbag() {
-    echo "FATAL (${SELF})"
-    printf -- '%s\n' "${ERRBAG[@]}"
+  check_required_params() {
+    [[ -n "${LH_PARAMS[SRC_FILE]}" ]]   || lh_params_noval SRC_FILE
+    [[ -n "${LH_PARAMS[DEST_FILE]}" ]]  || lh_params_noval DEST_FILE
+    [[ -n "${LH_PARAMS[LIBS_PATH]}" ]]  || lh_params_noval LIBS_PATH
   }
 
   replace_callback() {
-    declare inc_file="${LIBS_PATH}/${1}"
+    declare inc_file="${LH_PARAMS[LIBS_PATH]}/${1}"
 
     # The lib is already included
     printf -- '%s\n' "${INCLUDED_LIBS[@]}" \
     | grep -qFx -- "${inc_file}" && return
 
     INCLUDED_LIBS+=("${inc_file}")
-    printf -- '# INC:%s\n' "${inc_file}" >&2
+    echo "# INC:${inc_file}" >&2
 
     declare file_path
-    file_path="$(realpath --relative-to "${LIBS_PATH}" -m -- "${inc_file}")"
+    file_path="$(realpath --relative-to "${LH_PARAMS[LIBS_PATH]}" -m -- "${inc_file}")"
 
     # shellcheck disable=SC2034
     REPLACEMENT="$(
@@ -157,25 +143,29 @@ compile_bash_file() (
 
   main() {
     # shellcheck disable=SC2015
-    parse_params "${@}" \
-    && validate_required_args \
-    || { flush_errbag; return 1; }
+    parse_params "${@}"
+    check_required_params
 
-    declare dest_dir; dest_dir="$(dirname -- "${DEST_FILE}")"
+    lh_params_flush_invalid >&2 && {
+      echo "FATAL (${SELF})" >&2
+      return 1
+    }
+
+    declare dest_dir; dest_dir="$(dirname -- "${LH_PARAMS[DEST_FILE]}")"
     declare content; content="$( set -o pipefail
-      cat -- "${SRC_FILE}" \
+      cat -- "${LH_PARAMS[SRC_FILE]}" \
       | replace_marker '.LH_SOURCE:' replace_callback '#'
     )" || return $?
 
     (set -x; mkdir -p -- "${dest_dir}") \
     && {
-      if [[ ! -e "${DEST_FILE}" ]] || [[ -f "${DEST_FILE}" ]]; then
+      if [[ ! -e "${LH_PARAMS[DEST_FILE]}" ]] || [[ -f "${LH_PARAMS[DEST_FILE]}" ]]; then
         # Copy the original fail to ensure same file attributes.
-        # Copy only when there is no DEST_FILE or it is a regular file
-        (set -x; cp -- "${SRC_FILE}" "${DEST_FILE}")
+        # Copy only when there is no LH_PARAMS[DEST_FILE] or it is a regular file
+        (set -x; cp -- "${LH_PARAMS[SRC_FILE]}" "${LH_PARAMS[DEST_FILE]}")
       fi
     } \
-    && (set -x; cat <<< "${content}" > "${DEST_FILE}") \
+    && (set -x; cat <<< "${content}" > "${LH_PARAMS[DEST_FILE]}") \
     || return $?
   }
 

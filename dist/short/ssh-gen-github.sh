@@ -9,25 +9,102 @@ text_trim() { text_ltrim <<< "${1-$(cat)}" | text_rtrim; }
 text_rmblank() { grep -v '^\s*$' <<< "${1-$(cat)}"; return 0; }
 text_nice() { text_trim <<< "${1-$(cat)}" | text_rmblank | sed -e 's/^,//'; }
 # .LH_SOURCED: {{/ lib/text.sh }}
+# .LH_SOURCED: {{ lib/basic.sh }}
+# https://stackoverflow.com/a/2705678
+escape_sed_expr()  { sed -e 's/[]\/$*.^[]/\\&/g' <<< "${1-$(cat)}"; }
+escape_sed_repl()  { sed -e 's/[\/&]/\\&/g' <<< "${1-$(cat)}"; }
+# .LH_SOURCED: {{/ lib/basic.sh }}
+# .LH_SOURCED: {{ base.ignore.sh }}
+# USAGE:
+#   declare -A LH_DEFAULTS=([PARAM_NAME]=VALUE)
+#   lh_params_apply_defaults
+# If LH_PARAMS[PARAM_NAME] is not set, it gets the value from LH_DEFAULTS
+lh_params_apply_defaults() {
+  [[ "$(declare -p LH_PARAMS 2>/dev/null)" == "declare -A"* ]] || declare -Ag LH_PARAMS
+  [[ "$(declare -p LH_DEFAULTS 2>/dev/null)" == "declare -A"* ]] || declare -Ag LH_DEFAULTS
+
+  declare p_name; for p_name in "${!LH_DEFAULTS[@]}"; do
+    [[ -n "${LH_PARAMS[${p_name}]+x}" ]] || LH_PARAMS["${p_name}"]="${LH_DEFAULTS[${p_name}]}"
+  done
+}
+
+lh_params_reset() {
+  unset LH_PARAMS LH_PARAMS_NOVAL
+  declare -Ag LH_PARAMS
+  declare -ag LH_PARAMS_NOVAL
+}
+
+# USAGE:
+#   lh_param_set PARAM_NAME VALUE
+# Produces global LH_PARAMS[PARAM_NAME]=VALUE.
+# When VALUE is not provided returns 1 and puts PARAM_NAME to LH_PARAMS_NOVAL global array
+lh_param_set() {
+  declare name="${1}"
+
+  [[ -n "${2+x}" ]] || { lh_params_noval "${name}"; return 1; }
+
+  [[ "$(declare -p LH_PARAMS 2>/dev/null)" == "declare -A"* ]] || declare -Ag LH_PARAMS
+  LH_PARAMS["${name}"]="${2}"
+}
+
+lh_params_noval() {
+  [[ "$(declare -p LH_PARAMS_NOVAL 2>/dev/null)" == "declare -a"* ]] || {
+    unset LH_PARAMS_NOVAL
+    declare -ag LH_PARAMS_NOVAL
+  }
+
+  [[ ${#} -gt 0 ]] && { LH_PARAMS_NOVAL+=("${@}"); return; }
+
+  [[ ${#LH_PARAMS_NOVAL[@]} -gt 0 ]] || return 1
+  printf -- '%s\n' "${LH_PARAMS_NOVAL[@]}"
+}
+
+# shellcheck disable=SC2120
+lh_params_unsupported() {
+  [[ "$(declare -p LH_PARAMS_UNSUPPORTED 2>/dev/null)" == "declare -a"* ]] || {
+    unset LH_PARAMS_UNSUPPORTED
+    declare -ag LH_PARAMS_UNSUPPORTED
+  }
+
+  [[ ${#} -gt 0 ]] && { LH_PARAMS_UNSUPPORTED+=("${@}"); return; }
+
+  [[ ${#LH_PARAMS_UNSUPPORTED[@]} -gt 0 ]] || return 1
+  printf -- '%s\n' "${LH_PARAMS_UNSUPPORTED[@]}"
+}
+
+lh_params_flush_invalid() {
+  declare -i rc=1
+
+  # shellcheck disable=SC2119
+  declare unsup; unsup="$(lh_params_unsupported)" && {
+    echo "Unsupported params:"
+    printf -- '%s\n' "${unsup}" | sed -e 's/^/* /'
+    rc=0
+  }
+
+  # shellcheck disable=SC2119
+  declare noval; noval="$(lh_params_noval)" && {
+    echo "Values required for:"
+    printf -- '%s\n' "${noval}" | sed -e 's/^/* /'
+    rc=0
+  }
+
+  return ${rc}
+}
+# .LH_SOURCED: {{/ base.ignore.sh }}
 
 ssh_gen() (
   declare SELF="${FUNCNAME[0]}"
 
-  declare SG_USER
-  declare SG_HOSTNAME
-
-  # SG_PORT
-  # SG_HOST
-  # SG_COMMENT
-  # SG_DIRNAME
-  # SG_FILENAME
-  # SG_DEST_DIR
-
-  declare ASK=false
-
-  declare -a ERRBAG
-
-  declare SG_DEST_DIR_ALIAS
+  # shellcheck disable=SC2034
+  declare -A LH_DEFAULTS=(
+    [PORT]="22"
+    # [HOST]="${LH_PARAMS[HOSTNAME]}"
+    # [COMMENT]="$(id -un)@$(hostname -f)"
+    # [DIRNAME]="${LH_PARAMS[HOSTNAME]}"
+    # [FILENAME]="${LH_PARAMS[USER]}"
+    # [DEST_DIR]="${HOME}/.ssh/${LH_PARAMS[HOSTNAME]}"
+  )
 
   declare CUSTOM_DEST_DIR=false
 
@@ -70,10 +147,7 @@ ssh_gen() (
     fi
 
     text_nice "
-      Generate private and public key pair and manage Include entry in ~/.ssh/config
-      file. For option replacements environment variables can be used, by prefixing
-      env var with 'SG_', turning opt name to uppercase and replacing '-' with '_'
-      (--dest-dir ~/serv.com/ => SG_DEST_DIR=\"\${HOME}/serv.com/\")
+      Generate private and public key pair and manage Include entry in ~/.ssh/config.
      ,
       USAGE:
       =====
@@ -101,8 +175,8 @@ ssh_gen() (
       ${THE_SCRIPT} user serv.com
      ,
       # Generate to ~/.ssh/${CUSTOM_DIR}/${CUSTOM_FILE} instead of ~/.ssh/${HOSTNAME}/${USER}
-      SG_DIRNAME='${CUSTOM_DIR}' SG_HOST='serv.com *.serv.com' \\
-     ,  ${THE_SCRIPT} --filename='${CUSTOM_FILE}' --comment Zoo -- ${USER} ${HOSTNAME}
+     ${THE_SCRIPT} --host 'serv.com *.serv.com' --dirname '${CUSTOM_DIR}' \\
+     ,  --filename '${CUSTOM_FILE}' --comment Zoo -- ${USER} ${HOSTNAME}
      ,
       # Generate interactively to ~/my/certs/${USER} (will be prompted for params)
       ${THE_SCRIPT} --ask --dest-dir ~/my/certs/${USER}
@@ -112,6 +186,8 @@ ssh_gen() (
   parse_params() {
     declare -a args
 
+    lh_params_reset
+
     declare endopts=false
     declare param
     while [[ ${#} -gt 0 ]]; do
@@ -120,96 +196,80 @@ ssh_gen() (
       case "${param}" in
         --            ) endopts=true ;;
         -\?|-h|--help ) print_help "${@:2}"; exit ;;
-        --port        ) SG_PORT="${2}"; shift ;;
-        --port=*      ) SG_PORT="${1#*=}" ;;
-        --host        ) SG_HOST="${2}"; shift ;;
-        --host=*      ) SG_HOST="${1#*=}" ;;
-        --comment     ) SG_COMMENT="${2}"; shift ;;
-        --comment=*   ) SG_COMMENT="${1#*=}" ;;
-        --dirname     ) SG_DIRNAME="${2}"; shift ;;
-        --dirname=*   ) SG_DIRNAME="${1#*=}" ;;
-        --filename    ) SG_FILENAME="${2}"; shift ;;
-        --filename=*  ) SG_FILENAME="${1#*=}" ;;
-        --dest-dir    ) SG_DEST_DIR="${2}"; shift ;;
-        --dest-dir=*  ) SG_DEST_DIR="${1#*=}" ;;
-        --ask         ) ASK=true ;;
+        --port        ) lh_param_set PORT "${@:2:1}"; shift ;;
+        --host        ) lh_param_set HOST "${@:2:1}"; shift ;;
+        --comment     ) lh_param_set COMMENT "${@:2:1}"; shift ;;
+        --dirname     ) lh_param_set DIRNAME "${@:2:1}"; shift ;;
+        --filename    ) lh_param_set FILENAME "${@:2:1}"; shift ;;
+        --dest-dir    ) lh_param_set DEST_DIR "${@:2:1}"; shift ;;
+        --ask         ) lh_param_set ASK true ;;
+        -*            ) lh_params_unsupported "${1}" ;;
         *             ) args+=("${1}") ;;
       esac
 
       shift
     done
 
-    [[ ${#args[@]} -gt 0 ]] && SG_USER="${args[0]}"
-    [[ ${#args[@]} -gt 1 ]] && SG_HOSTNAME="${args[1]}"
-    [[ ${#args[@]} -lt 3 ]] || {
-      ERRBAG+=(
-        "Unsupported params:"
-        "$(printf -- '* %s\n' "${args[@]:2}")"
-      )
-
-      return 1
-    }
+    [[ ${#args[@]} -gt 0 ]] && lh_param_set USER "${args[0]}"
+    [[ ${#args[@]} -gt 1 ]] && lh_param_set HOSTNAME "${args[1]}"
+    [[ ${#args[@]} -lt 3 ]] || lh_params_unsupported "${args[@]:2}"
   }
 
   trap_ask() {
-    ! ${ASK} && return 0
+    ! ${LH_PARAMS[ASK]-false} && return 0
 
     declare confirm
 
     while ! [[ "${confirm:-n}" == y ]]; do
       confirm=""
 
-      read -erp "SSH user: " -i "${SG_USER}" SG_USER
-      read -erp "HostName (%h for the target hostname): " -i "${SG_HOSTNAME}" SG_HOSTNAME
-      read -erp "Host port: " -i "${SG_PORT:-22}" SG_PORT
-      read -erp "Host: " -i "${SG_HOST:-${SG_HOSTNAME}}" SG_HOST
-      read -erp "Comment: " -i "${SG_COMMENT:-$(id -un)@$(hostname -f)}" SG_COMMENT
-      read -erp "Directory name: " -i "${SG_DIRNAME:-${SG_HOSTNAME}}" SG_DIRNAME
-      read -erp "File name: " -i "${SG_FILENAME:-${SG_USER}}" SG_FILENAME
-      read -erp "Custom destination directory: " -i "${SG_DEST_DIR}" SG_DEST_DIR
+      read -erp "SSH user: " -i "${LH_PARAMS[USER]}" 'LH_PARAMS[USER]'
+      read -erp "HostName (%h for the target hostname): " -i "${LH_PARAMS[HOSTNAME]}" 'LH_PARAMS[HOSTNAME]'
+      read -erp "Host port: " -i "${LH_PARAMS[PORT]-22}" 'LH_PARAMS[PORT]'
+      read -erp "Host: " -i "${LH_PARAMS[HOST]-${LH_PARAMS[HOSTNAME]}}" 'LH_PARAMS[HOST]'
+      read -erp "Comment: " -i "${LH_PARAMS[COMMENT]-$(id -un)@$(hostname -f)}" 'LH_PARAMS[COMMENT]'
+      read -erp "Directory name: " -i "${LH_PARAMS[DIRNAME]-${LH_PARAMS[HOSTNAME]}}" 'LH_PARAMS[DIRNAME]'
+      read -erp "File name: " -i "${LH_PARAMS[FILENAME]-${LH_PARAMS[USER]}}" 'LH_PARAMS[FILENAME]'
+      read -erp "Custom destination directory: " -i "${LH_PARAMS[DEST_DIR]}" 'LH_PARAMS[DEST_DIR]'
 
       echo '============================'
 
       while [[ ! " y n " == *" ${confirm} "* ]]; do
         read -rp "YES (y) for proceeding or NO (n) to repeat: " confirm
-        [[ "${confirm,,}" == yes ]] && confirm=y
-        [[ "${confirm,,}" == no ]] && confirm=n
-        confirm="${confirm,,}"
+        [[ "${confirm,,}" =~ ^(y|yes)$ ]] && confirm=y
+        [[ "${confirm,,}" =~ ^(n|no)$ ]] && confirm=n
       done
     done
   }
 
-  validate_required_args() {
+  check_required_params() {
     declare rc=0
-    [[ -n "${SG_USER}" ]]     || { rc=1; ERRBAG+=("USER is required"); }
-    [[ -n "${SG_HOSTNAME}" ]] || { rc=1; ERRBAG+=("HOSTNAME is required"); }
+    [[ -n "${LH_PARAMS[USER]}" ]]     || { rc=1; lh_params_noval USER; }
+    [[ -n "${LH_PARAMS[HOSTNAME]}" ]] || { rc=1; lh_params_noval HOSTNAME; }
     return ${rc}
   }
 
-  flush_errbag() {
-    echo "FATAL (${SELF})"
-    printf -- '%s\n' "${ERRBAG[@]}"
-  }
-
   apply_defaults() {
-    SG_PORT="${SG_PORT:-22}"
-    SG_HOST="${SG_HOST:-${SG_HOSTNAME}}"
-    SG_COMMENT="${SG_COMMENT:-$(id -un)@$(hostname -f)}"
-    SG_DIRNAME="${SG_DIRNAME:-${SG_HOSTNAME}}"
-    SG_FILENAME="${SG_FILENAME:-${SG_USER}}"
+    lh_params_apply_defaults
 
-    SG_DEST_DIR="$(sed -e 's/\/*$//' <<< "${SG_DEST_DIR}")"
-    SG_DEST_DIR_ALIAS="${SG_DEST_DIR}"
-    if [[ -z "${SG_DEST_DIR:+x}" ]]; then
-      SG_DEST_DIR="${HOME}/.ssh/${SG_DIRNAME}"
+    LH_PARAMS[HOST]="${LH_PARAMS[HOST]-${LH_PARAMS[HOSTNAME]}}"
+    LH_PARAMS[COMMENT]="${LH_PARAMS[COMMENT]-$(id -un)@$(hostname -f)}"
+    LH_PARAMS[DIRNAME]="${LH_PARAMS[DIRNAME]-${LH_PARAMS[HOSTNAME]}}"
+    LH_PARAMS[FILENAME]="${LH_PARAMS[FILENAME]-${LH_PARAMS[USER]}}"
+
+    declare dest_dir_alias="${LH_PARAMS[DEST_DIR]}"
+    if [[ -z "${LH_PARAMS[DEST_DIR]:+x}" ]]; then
+      LH_PARAMS[DEST_DIR]="${HOME}/.ssh/${LH_PARAMS[DIRNAME]}"
       # shellcheck disable=SC2088
-      SG_DEST_DIR_ALIAS="~/$(realpath -m --relative-to="${HOME}" "${HOME}/.ssh/${SG_DIRNAME}")"
+      dest_dir_alias="~/$(realpath -m --relative-to="${HOME}" -- "${LH_PARAMS[DEST_DIR]}")"
     else
       CUSTOM_DEST_DIR=true
     fi
+    LH_PARAMS[DEST_DIR]="$(sed -e 's/\/*$//' <<< "${LH_PARAMS[DEST_DIR]}")"
+    dest_dir_alias="$(sed -e 's/\/*$//' <<< "${dest_dir_alias}")"
 
-    PK_PATH="${SG_DEST_DIR}/${SG_FILENAME}"
-    PK_PATH_ALIAS="${SG_DEST_DIR_ALIAS}/${SG_FILENAME}"
+    PK_PATH="${LH_PARAMS[DEST_DIR]}/${LH_PARAMS[FILENAME]}"
+    PK_PATH_ALIAS="${dest_dir_alias}/${LH_PARAMS[FILENAME]}"
 
     PUB_PATH="${PK_PATH}.pub"
     PUB_PATH_ALIAS="${PK_PATH_ALIAS}.pub"
@@ -219,12 +279,10 @@ ssh_gen() (
   }
 
   gen_key() {
-    declare dest_dir; dest_dir="$(dirname -- "${PK_PATH}")"
-
-    (set -x; mkdir -p "${dest_dir}") || return
+    (set -x; mkdir -p "${LH_PARAMS[DEST_DIR]}") || return
 
     if ! cat -- "${PK_PATH}" &>/dev/null; then
-      (set -x; ssh-keygen -q -N '' -b 4096 -t rsa -C "${SG_COMMENT}" -f "${PK_PATH}") || return
+      (set -x; ssh-keygen -q -N '' -b 4096 -t rsa -C "${LH_PARAMS[COMMENT]}" -f "${PK_PATH}") || return
       GEN_RESULT[pk_created]=true
       GEN_RESULT[pub_created]=true
     fi
@@ -244,25 +302,26 @@ ssh_gen() (
 
     declare identity_file="${PK_PATH_ALIAS}"
     ${CUSTOM_DEST_DIR} && identity_file="$(realpath -m -- "${PK_PATH_ALIAS}")"
-    identity_file="${identity_file/${HOME}\//'~/'}"
+    # shellcheck disable=SC2001
+    identity_file="$(sed -e 's/'"$(escape_sed_expr "${HOME}")"'/~/' <<< "${identity_file}")"
 
     declare conf="
       # SSH host match pattern. Sample:
       #   myserv.com
       #   *.myserv.com myserv.com
-      Host ${SG_HOST}
+      Host ${LH_PARAMS[HOST]}
         # The actual SSH host. Sample:
         #   10.0.0.69
         #   google.com
         #   %h # (referehce to matched Host)
-        HostName ${SG_HOSTNAME}
-        Port ${SG_PORT}
-        User ${SG_USER}
+        HostName ${LH_PARAMS[HOSTNAME]}
+        Port ${LH_PARAMS[PORT]}
+        User ${LH_PARAMS[USER]}
         IdentityFile ${identity_file}
         IdentitiesOnly yes
     "
 
-    printf -- '%s\n' "${conf}" \
+    echo "${conf}" \
       | grep -v '^\s*$' | sed -e 's/^\s\+//' -e '5,$s/^/  /' \
       | (set -x; tee -- "${PK_CONFFILE_PATH}" >/dev/null) \
     && {
@@ -301,7 +360,7 @@ ssh_gen() (
 
     text_nice "
       Add public key to your server:
-     ,  ssh-copy-id -i ${PUB_PATH_ALIAS} -p ${SG_PORT} ${SG_USER}@${SG_HOSTNAME}
+     ,  ssh-copy-id -i ${PUB_PATH_ALIAS} -p ${LH_PARAMS[PORT]} ${LH_PARAMS[USER]}@${LH_PARAMS[HOSTNAME]}
       Add public key to your git host account:
      ,  * https://github.com/settings/keys
      ,  * https://bitbucket.org/account/settings/ssh-keys/
@@ -314,7 +373,7 @@ ssh_gen() (
 
       text_nice "
         Add to your SSH configuration:
-       ,  cp -r ${SG_DEST_DIR} ${ssh_dir}
+       ,  cp -r ${LH_PARAMS[DEST_DIR]} ${ssh_dir}
        ,  echo \"Include ${pk_conffile}\" > ~/.ssh/config
        ,  # Ensure correct path to PK file under IdentityFile
        ,  vim ${pk_conffile}
@@ -330,10 +389,14 @@ ssh_gen() (
 
   main() {
     # shellcheck disable=SC2015
-    parse_params "${@}" \
-    && trap_ask \
-    && validate_required_args \
-    || { flush_errbag; return 1; }
+    parse_params "${@}"
+    trap_ask
+    check_required_params
+
+    lh_params_flush_invalid >&2 && {
+      echo "FATAL (${SELF})" >&2
+      return 1
+    }
 
     apply_defaults
     gen_key || return $?
@@ -346,8 +409,6 @@ ssh_gen() (
 
 # .LH_SOURCED: {{/ bin/ssh-gen.sh }}
 
-# ssh_gen_github [ACCOUNT=git] [--host HOST=github.com] \
-#   [--comment COMMENT=$(id -un)@$(hostname -f)]
 ssh_gen_github() (
   declare -A DEFAULTS=(
     [account]=git
@@ -383,7 +444,7 @@ ssh_gen_github() (
       =====
       $(print_help_usage)
      ,
-      PARAMS (=DEFAULT_VALUE):
+      PARAMS:
       ======
       ACCOUNT   Github account, only used to form cert filename
       --        End of options
@@ -412,9 +473,7 @@ ssh_gen_github() (
         --            ) endopts=true ;;
         -\?|-h|--help ) print_help "${@:2}"; exit ;;
         --host        ) UPSTREAM_PARAMS+=(--host "${2}"); shift ;;
-        --host=*      ) UPSTREAM_PARAMS+=(--host "${1#*=}") ;;
         --comment     ) UPSTREAM_PARAMS+=(--comment "${2}"); shift ;;
-        --comment=*   ) UPSTREAM_PARAMS+=(--comment "${1#*=}") ;;
         *             ) args+=("${1}") ;;
       esac
 
@@ -425,15 +484,7 @@ ssh_gen_github() (
     [[ ${#args[@]} -lt 2 ]] || UPSTREAM_PARAMS+=(-- "${args[@]:1}")
   }
 
-  ensure_clean_env() {
-    # Explicitly ensure SG_* vars don't mess anything
-    while read -r envvar; do
-      unset "${envvar}" 2>/dev/null
-    done <<< "$(printenv | grep '^SG_[^=]\+=' | cut -d'=' -f1)"
-  }
-
   main() {
-    ensure_clean_env
     parse_params "${@}"
 
     ssh_gen "${UPSTREAM_PARAMS[@]}"

@@ -3,8 +3,6 @@
 # .LH_SOURCE:bin/ssh-gen.sh
 # .LH_SOURCE:lib/text.sh
 
-# ssh_gen_github [ACCOUNT=git] [--host HOST=github.com] \
-#   [--comment COMMENT=$(id -un)@$(hostname -f)]
 ssh_gen_github() (
   declare -A DEFAULTS=(
     [account]=git
@@ -40,7 +38,7 @@ ssh_gen_github() (
       =====
       $(print_help_usage)
      ,
-      PARAMS (=DEFAULT_VALUE):
+      PARAMS:
       ======
       ACCOUNT   Github account, only used to form cert filename
       --        End of options
@@ -69,9 +67,7 @@ ssh_gen_github() (
         --            ) endopts=true ;;
         -\?|-h|--help ) print_help "${@:2}"; exit ;;
         --host        ) UPSTREAM_PARAMS+=(--host "${2}"); shift ;;
-        --host=*      ) UPSTREAM_PARAMS+=(--host "${1#*=}") ;;
         --comment     ) UPSTREAM_PARAMS+=(--comment "${2}"); shift ;;
-        --comment=*   ) UPSTREAM_PARAMS+=(--comment "${1#*=}") ;;
         *             ) args+=("${1}") ;;
       esac
 
@@ -82,15 +78,7 @@ ssh_gen_github() (
     [[ ${#args[@]} -lt 2 ]] || UPSTREAM_PARAMS+=(-- "${args[@]:1}")
   }
 
-  ensure_clean_env() {
-    # Explicitly ensure SG_* vars don't mess anything
-    while read -r envvar; do
-      unset "${envvar}" 2>/dev/null
-    done <<< "$(printenv | grep '^SG_[^=]\+=' | cut -d'=' -f1)"
-  }
-
   main() {
-    ensure_clean_env
     parse_params "${@}"
 
     ssh_gen "${UPSTREAM_PARAMS[@]}"

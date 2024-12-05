@@ -105,10 +105,7 @@
   
   **MAN:**
   ~~~
-  Generate private and public key pair and manage Include entry in ~/.ssh/config
-  file. For option replacements environment variables can be used, by prefixing
-  env var with 'SG_', turning opt name to uppercase and replacing '-' with '_'
-  (--dest-dir ~/serv.com/ => SG_DEST_DIR="${HOME}/serv.com/")
+  Generate private and public key pair and manage Include entry in ~/.ssh/config.
   
   USAGE:
   =====
@@ -139,8 +136,8 @@
   ssh-gen.sh user serv.com
   
   # Generate to ~/.ssh/_.serv.com/bar instead of ~/.ssh/10.0.0.69/foo
-  SG_DIRNAME='_.serv.com' SG_HOST='serv.com *.serv.com' \
-    ssh-gen.sh --filename='bar' --comment Zoo -- foo 10.0.0.69
+  ssh-gen.sh --host 'serv.com *.serv.com' --dirname '_.serv.com' \
+    --filename 'bar' --comment Zoo -- foo 10.0.0.69
   
   # Generate interactively to ~/my/certs/foo (will be prompted for params)
   ssh-gen.sh --ask --dest-dir ~/my/certs/foo
@@ -160,7 +157,7 @@
     set -x; "${dl_tool[@]}" "https://raw.githubusercontent.com/spaghetti-coder/linux-helper/${VERSION}/dist/short/compile-bash-project.sh" \
     || "${dl_tool[@]}" "https://bitbucket.org/kvedenskii/linux-scripts/raw/${VERSION}/dist/short/compile-bash-project.sh"
   ) \
-    [--ext EXT='.sh'...] [--no-ext EXT=''...] [--] \
+    [--ext EXT='.sh']... [--no-ext NO_EXT]... [--] \
     SRC_DIR DEST_DIR
   ~~~
   
@@ -182,7 +179,7 @@
   
   USAGE:
   =====
-  compile-bash-project.sh [--ext EXT='.sh'...] [--no-ext EXT=''...] [--] \
+  compile-bash-project.sh [--ext EXT='.sh']... [--no-ext NO_EXT]... [--] \
     SRC_DIR DEST_DIR
   
   PARAMS:
@@ -197,8 +194,8 @@
   ====
   # Compile all '.sh' and '.bash' files under 'src' directory to 'dest'
   # excluding files with '.hidden.sh' and '.secret.sh' extensions
-  compile-bash-project.sh ./src ./dest --ext '.sh' --ext='.bash' \
-    --no-ext '.hidden.sh' --no-ext='.secret.sh'
+  compile-bash-project.sh ./src ./dest --ext '.sh' --ext '.bash' \
+    --no-ext '.hidden.sh' --no-ext '.secret.sh'
   ~~~
   
 </details>  
@@ -230,7 +227,7 @@
   ssh-gen-github.sh [--host HOST='github.com'] \
     [--comment COMMENT="$(id -un)@$(hostname -f)"] [--] [ACCOUNT='git']
   
-  PARAMS (=DEFAULT_VALUE):
+  PARAMS:
   ======
   ACCOUNT   Github account, only used to form cert filename
   --        End of options
