@@ -130,7 +130,7 @@ ssh_gen() (
 
   print_help_usage() {
     echo "
-      ${THE_SCRIPT} [--port PORT='22'] [--host HOST=HOSTNAME] \\
+      ${THE_SCRIPT} [--port PORT='${LH_DEFAULTS[PORT]}'] [--host HOST=HOSTNAME] \\
      ,  [--comment COMMENT=\"\$(id -un)@\$(hostname -f)\"] [--dirname DIRNAME=HOSTNAME] \\
      ,  [--filename FILENAME=USER] [--dest-dir DEST_DIR=\"\${HOME}/.ssh/\"HOSTNAME] \\
      ,  [--ask] [--] USER HOSTNAME
@@ -224,7 +224,7 @@ ssh_gen() (
 
       read -erp "SSH user: " -i "${LH_PARAMS[USER]}" 'LH_PARAMS[USER]'
       read -erp "HostName (%h for the target hostname): " -i "${LH_PARAMS[HOSTNAME]}" 'LH_PARAMS[HOSTNAME]'
-      read -erp "Host port: " -i "${LH_PARAMS[PORT]-22}" 'LH_PARAMS[PORT]'
+      read -erp "Host port: " -i "${LH_PARAMS[PORT]-${LH_DEFAULTS[PORT]}}" 'LH_PARAMS[PORT]'
       read -erp "Host: " -i "${LH_PARAMS[HOST]-${LH_PARAMS[HOSTNAME]}}" 'LH_PARAMS[HOST]'
       read -erp "Comment: " -i "${LH_PARAMS[COMMENT]-$(id -un)@$(hostname -f)}" 'LH_PARAMS[COMMENT]'
       read -erp "Directory name: " -i "${LH_PARAMS[DIRNAME]-${LH_PARAMS[HOSTNAME]}}" 'LH_PARAMS[DIRNAME]'
@@ -242,10 +242,8 @@ ssh_gen() (
   }
 
   check_required_params() {
-    declare rc=0
-    [[ -n "${LH_PARAMS[USER]}" ]]     || { rc=1; lh_params_noval USER; }
-    [[ -n "${LH_PARAMS[HOSTNAME]}" ]] || { rc=1; lh_params_noval HOSTNAME; }
-    return ${rc}
+    [[ -n "${LH_PARAMS[USER]}" ]]     || lh_params_noval USER
+    [[ -n "${LH_PARAMS[HOSTNAME]}" ]] || lh_params_noval HOSTNAME
   }
 
   apply_defaults() {
