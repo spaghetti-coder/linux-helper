@@ -11,6 +11,8 @@
 
 <a id="bin/compile-bash-file.sh"></a>
 <details><summary>bin/compile-bash-file.sh</summary>
+
+  [Link to the section](#bin/compile-bash-file.sh)
   
   **AD HOC:**
   ~~~sh
@@ -83,9 +85,12 @@
   ```
   ~~~
   
-</details>  
+</details>
+
 <a id="bin/ssh-gen.sh"></a>
 <details><summary>bin/ssh-gen.sh</summary>
+
+  [Link to the section](#bin/ssh-gen.sh)
   
   **AD HOC:**
   ~~~sh
@@ -144,9 +149,12 @@
   ssh-gen.sh --ask --dest-dir ~/my/certs/foo
   ~~~
   
-</details>  
+</details>
+
 <a id="short/compile-bash-project.sh"></a>
 <details><summary>short/compile-bash-project.sh</summary>
+
+  [Link to the section](#short/compile-bash-project.sh)
   
   **AD HOC:**
   ~~~sh
@@ -198,9 +206,12 @@
     --no-ext '.hidden.sh' --no-ext '.secret.sh'
   ~~~
   
-</details>  
+</details>
+
 <a id="short/ssh-gen-github.sh"></a>
 <details><summary>short/ssh-gen-github.sh</summary>
+
+  [Link to the section](#short/ssh-gen-github.sh)
   
   **AD HOC:**
   ~~~sh
@@ -243,7 +254,7 @@
   ssh-gen-github.sh foo --host github.com-foo --comment Zoo
   ~~~
   
-</details>  
+</details>
 
 [To top]
 
@@ -251,6 +262,10 @@
 
 <a id="config/tmux/tmux-default.sh"></a>
 <details><summary>config/tmux/tmux-default.sh</summary>
+
+  [Link to the section](#config/tmux/tmux-default.sh)
+
+  View [`default.conf`](https://raw.githubusercontent.com/spaghetti-coder/linux-helper/master/src/asset/conf/tmux/default.conf)
   
   **AD HOC:**
   ~~~sh
@@ -304,6 +319,10 @@
 
 <a id="config/tmux/tmux-plugins.sh"></a>
 <details><summary>config/tmux/tmux-plugins.sh</summary>
+
+  [Link to the section](#config/tmux/tmux-plugins.sh)
+
+  View [`plugins.conf`](https://raw.githubusercontent.com/spaghetti-coder/linux-helper/master/src/asset/conf/tmux/plugins.conf) and [`appendix.conf`](https://raw.githubusercontent.com/spaghetti-coder/linux-helper/master/src/asset/conf/tmux/appendix.conf)
   
   **AD HOC:**
   ~~~sh

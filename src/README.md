@@ -9,26 +9,10 @@
 
 ## Tools
 
-<a id="bin/compile-bash-file.sh"></a>
-<details><summary>bin/compile-bash-file.sh</summary>
-  <!-- .LH_ADHOC_USAGE:bin/compile-bash-file.sh -->
-  <!-- .LH_HELP:bin/compile-bash-file.sh -->
-</details>  
-<a id="bin/ssh-gen.sh"></a>
-<details><summary>bin/ssh-gen.sh</summary>
-  <!-- .LH_ADHOC_USAGE:bin/ssh-gen.sh -->
-  <!-- .LH_HELP:bin/ssh-gen.sh -->
-</details>  
-<a id="short/compile-bash-project.sh"></a>
-<details><summary>short/compile-bash-project.sh</summary>
-  <!-- .LH_ADHOC_USAGE:short/compile-bash-project.sh -->
-  <!-- .LH_HELP:short/compile-bash-project.sh -->
-</details>  
-<a id="short/ssh-gen-github.sh"></a>
-<details><summary>short/ssh-gen-github.sh</summary>
-  <!-- .LH_ADHOC_USAGE:short/ssh-gen-github.sh -->
-  <!-- .LH_HELP:short/ssh-gen-github.sh -->
-</details>  
+<!-- .LH_DETAILS:bin/compile-bash-file.sh -->
+<!-- .LH_DETAILS:bin/ssh-gen.sh -->
+<!-- .LH_DETAILS:short/compile-bash-project.sh -->
+<!-- .LH_DETAILS:short/ssh-gen-github.sh -->
 
 [To top]
 
@@ -36,12 +20,20 @@
 
 <a id="config/tmux/tmux-default.sh"></a>
 <details><summary>config/tmux/tmux-default.sh</summary>
+
+  [Link to the section](#config/tmux/tmux-default.sh)
+
+  View [`default.conf`](@@BASE_RAW_URL/master/src/asset/conf/tmux/default.conf)
   <!-- .LH_ADHOC_USAGE:config/tmux/tmux-default.sh -->
   <!-- .LH_HELP:config/tmux/tmux-default.sh -->
 </details>
 
 <a id="config/tmux/tmux-plugins.sh"></a>
 <details><summary>config/tmux/tmux-plugins.sh</summary>
+
+  [Link to the section](#config/tmux/tmux-plugins.sh)
+
+  View [`plugins.conf`](@@BASE_RAW_URL/master/src/asset/conf/tmux/plugins.conf) and [`appendix.conf`](@@BASE_RAW_URL/master/src/asset/conf/tmux/appendix.conf)
   <!-- .LH_ADHOC_USAGE:config/tmux/tmux-plugins.sh -->
   <!-- .LH_HELP:config/tmux/tmux-plugins.sh -->
 </details>  

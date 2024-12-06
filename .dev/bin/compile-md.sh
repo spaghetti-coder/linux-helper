@@ -35,6 +35,16 @@ BASE_VERSION=master
 echo "# ===== ${SELF}: compiling ${SRC_MD} => ${DEST_MD}" >&2
 
 # shellcheck disable=SC2317
+replace_details_cbk() {
+  REPLACEMENT=$'\n''<a id="'"${1}"'"></a>'
+  REPLACEMENT+=$'\n''<details><summary>'"${1}"'</summary>'$'\n'
+  REPLACEMENT+=$'\n''  [Link to the section]('#"${1}"')'$'\n'
+  REPLACEMENT+=$'\n''  <!-- .LH_ADHOC_USAGE:'"${1}"' -->'$'\n'
+  REPLACEMENT+=$'\n''  <!-- .LH_HELP:'"${1}"' -->'
+  REPLACEMENT+=$'\n''</details>'$'\n'
+}
+
+# shellcheck disable=SC2317
 replace_help_cbk() {
   declare help; help="$(set -x; "${DIST_DIR}/${1}" --help)" || return $?
 
@@ -95,6 +105,7 @@ RC=0
 (
   set -o pipefail
   cat -- "${SRC_MD}" \
+  | replace_marker '.LH_DETAILS:' replace_details_cbk '<!--' '-->' \
   | replace_marker '.LH_HELP:' replace_help_cbk '<!--' '-->' \
   | RAPLACE_ADHOC_USAGE=true replace_marker '.LH_ADHOC_USAGE:' replace_adhoc_cbk '<!--' '-->' \
   | RAPLACE_ADHOC_USAGE=false replace_marker '.LH_ADHOC:' replace_adhoc_cbk '<!--' '-->' \
