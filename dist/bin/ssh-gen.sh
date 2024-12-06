@@ -95,6 +95,10 @@ lh_params_flush_invalid() {
 ssh_gen() (
   declare SELF="${FUNCNAME[0]}"
 
+  # If not a file, default to ssh-gen.sh script name
+  declare THE_SCRIPT=ssh-gen.sh
+  grep -q -m 1 -- '.' "${0}" 2>/dev/null && THE_SCRIPT="$(basename -- "${0}")"
+
   # shellcheck disable=SC2034
   declare -A LH_DEFAULTS=(
     [PORT]="22"
@@ -130,20 +134,11 @@ ssh_gen() (
   }
 
   print_help() {
-    # If not a file, default to ssh-gen.sh script name
-    declare THE_SCRIPT=ssh-gen.sh
-    grep -q -m 1 -- '.' "${0}" 2>/dev/null && THE_SCRIPT="$(basename -- "${0}")"
-
     declare -r \
       USER=foo \
       HOSTNAME=10.0.0.69 \
       CUSTOM_DIR=_.serv.com \
       CUSTOM_FILE=bar
-
-    if declare -F "print_help_${1,,}" &>/dev/null; then
-      print_help_usage | text_nice
-      exit
-    fi
 
     text_nice "
       Generate private and public key pair and manage Include entry in ~/.ssh/config.
@@ -194,7 +189,8 @@ ssh_gen() (
 
       case "${param}" in
         --            ) endopts=true ;;
-        -\?|-h|--help ) print_help "${@:2}"; exit ;;
+        -\?|-h|--help ) print_help; exit ;;
+        --usage       ) print_help_usage | text_nice; exit ;;
         --port        ) lh_param_set PORT "${@:2:1}"; shift ;;
         --host        ) lh_param_set HOST "${@:2:1}"; shift ;;
         --comment     ) lh_param_set COMMENT "${@:2:1}"; shift ;;

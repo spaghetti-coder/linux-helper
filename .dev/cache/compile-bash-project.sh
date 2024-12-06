@@ -158,6 +158,10 @@ lh_params_flush_invalid() {
 compile_bash_file() (
   declare SELF="${FUNCNAME[0]}"
 
+  # If not a file, default to ssh-gen.sh script name
+  declare THE_SCRIPT=compile-bash-file.sh
+  grep -q -m 1 -- '.' "${0}" 2>/dev/null && THE_SCRIPT="$(basename -- "${0}")"
+
   declare LIBS_PATH
 
   print_help_usage() {
@@ -165,15 +169,6 @@ compile_bash_file() (
   }
 
   print_help() {
-    # If not a file, default to ssh-gen.sh script name
-    declare THE_SCRIPT=compile-bash-file.sh
-    grep -q -m 1 -- '.' "${0}" 2>/dev/null && THE_SCRIPT="$(basename -- "${0}")"
-
-    if declare -F "print_help_${1,,}" &>/dev/null; then
-      print_help_usage | text_nice
-      exit
-    fi
-
     text_nice "
       Compile bash script. Processing:
       * Replace '# .LH_SOURCE:path/to/lib.sh' comment lines with content of the
@@ -242,7 +237,8 @@ compile_bash_file() (
 
       case "${param}" in
         --            ) endopts=true ;;
-        -\?|-h|--help ) print_help "${@:2}"; exit ;;
+        -\?|-h|--help ) print_help; exit ;;
+        --usage       ) print_help_usage | text_nice; exit ;;
         -*            ) lh_params_unsupported "${1}" ;;
         *             ) args+=("${1}") ;;
       esac
@@ -328,12 +324,14 @@ compile_bash_file() (
 compile_bash_project() (
   declare SELF="${FUNCNAME[0]}"
 
+  # If not a file, default to ssh-gen.sh script name
+  declare THE_SCRIPT=compile-bash-project.sh
+  grep -q -m 1 -- '.' "${0}" 2>/dev/null && THE_SCRIPT="$(basename -- "${0}")"
+
   declare -a EXTS
   declare -a NO_EXTS
 
   declare -a SRC_FILES
-
-  declare -a ERRBAG
 
   print_help_usage() {
     echo "
@@ -343,15 +341,6 @@ compile_bash_project() (
   }
 
   print_help() {
-    # If not a file, default to ssh-gen.sh script name
-    declare THE_SCRIPT=compile-bash-project.sh
-    grep -q -m 1 -- '.' "${0}" 2>/dev/null && THE_SCRIPT="$(basename -- "${0}")"
-
-    if declare -F "print_help_${1,,}" &>/dev/null; then
-      print_help_usage | text_nice
-      exit
-    fi
-
     text_nice "
       Shortcut for compile-bash-file.sh.
      ,
@@ -398,7 +387,8 @@ compile_bash_project() (
       # shellcheck disable=SC2015
       case "${param}" in
         --            ) endopts=true ;;
-        -\?|-h|--help ) print_help "${@:2}"; exit ;;
+        -\?|-h|--help ) print_help; exit ;;
+        --usage       ) print_help_usage | text_nice; exit ;;
         --ext         ) [[ -n "${2+x}" ]] && EXTS+=("${2}") || lh_params_noval EXT; shift ;;
         --no-ext      ) [[ -n "${2+x}" ]] && NO_EXTS+=("${2}") || lh_params_noval NO_EXT; shift ;;
         -*            ) lh_params_unsupported "${1}" ;;
@@ -416,11 +406,6 @@ compile_bash_project() (
   check_required_params() {
     [[ -n "${LH_PARAMS[SRC_DIR]}" ]]  || lh_params_noval SRC_DIR
     [[ -n "${LH_PARAMS[DEST_DIR]}" ]] || lh_params_noval DEST_DIR;
-  }
-
-  flush_errbag() {
-    echo "FATAL (${SELF})"
-    printf -- '%s\n' "${ERRBAG[@]}"
   }
 
   apply_defaults() {

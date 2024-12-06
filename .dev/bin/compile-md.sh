@@ -51,7 +51,7 @@ replace_adhoc_cbk() {
 
   if ${RAPLACE_ADHOC_USAGE:-false}; then
     params="$(
-      (set -x; "${DIST_DIR}/${1}" --help usage) \
+      (set -x; "${DIST_DIR}/${1}" --usage) \
       | cut -d ' ' -f2- | text_ltrim | sed 's/^/,  /' | text_ltrim
     )"
     if [[ -n "${params}" ]]; then

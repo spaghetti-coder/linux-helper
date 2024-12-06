@@ -8,6 +8,10 @@
 compile_bash_file() (
   declare SELF="${FUNCNAME[0]}"
 
+  # If not a file, default to ssh-gen.sh script name
+  declare THE_SCRIPT=compile-bash-file.sh
+  grep -q -m 1 -- '.' "${0}" 2>/dev/null && THE_SCRIPT="$(basename -- "${0}")"
+
   declare LIBS_PATH
 
   print_help_usage() {
@@ -15,15 +19,6 @@ compile_bash_file() (
   }
 
   print_help() {
-    # If not a file, default to ssh-gen.sh script name
-    declare THE_SCRIPT=compile-bash-file.sh
-    grep -q -m 1 -- '.' "${0}" 2>/dev/null && THE_SCRIPT="$(basename -- "${0}")"
-
-    if declare -F "print_help_${1,,}" &>/dev/null; then
-      print_help_usage | text_nice
-      exit
-    fi
-
     text_nice "
       Compile bash script. Processing:
       * Replace '# .LH_SOURCE:path/to/lib.sh' comment lines with content of the
@@ -92,7 +87,8 @@ compile_bash_file() (
 
       case "${param}" in
         --            ) endopts=true ;;
-        -\?|-h|--help ) print_help "${@:2}"; exit ;;
+        -\?|-h|--help ) print_help; exit ;;
+        --usage       ) print_help_usage | text_nice; exit ;;
         -*            ) lh_params_unsupported "${1}" ;;
         *             ) args+=("${1}") ;;
       esac
