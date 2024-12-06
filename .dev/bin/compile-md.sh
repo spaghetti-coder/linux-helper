@@ -50,10 +50,11 @@ replace_adhoc_cbk() {
   declare params; params="$(cut -d' ' -f2- <<< "${1} " | text_trim)"
 
   if ${RAPLACE_ADHOC_USAGE:-false}; then
-    params="$(
+    params="$(set -o pipefail
       (set -x; "${DIST_DIR}/${1}" --usage) \
       | cut -d ' ' -f2- | text_ltrim | sed 's/^/,  /' | text_ltrim
-    )"
+    )" || return $?
+
     if [[ -n "${params}" ]]; then
       params=" \\"$'\n'"${params}"
     fi
