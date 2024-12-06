@@ -260,6 +260,97 @@
 
 ## Config
 
+<a id="config/git/git-config.sh"></a>
+<details><summary>config/git/git-config.sh</summary>
+
+  [Link to the section](#config/git/git-config.sh)
+
+  View [`gitconfig.extra.ini` template](https://raw.githubusercontent.com/spaghetti-coder/linux-helper/master/src/asset/template/git/gitconfig.extra.ini)
+  
+  **AD HOC:**
+  ~~~sh
+  # Review and change input params (after "bash -s --")
+  # VERSION can be changed to any treeish
+  (
+    VERSION='master'
+    curl -V &>/dev/null && dl_tool=(curl -sL) || dl_tool=(wget -qO-)
+    set -x; "${dl_tool[@]}" "https://raw.githubusercontent.com/spaghetti-coder/linux-helper/${VERSION:-master}/dist/config/git/git-config.sh" \
+    || "${dl_tool[@]}" "https://bitbucket.org/kvedenskii/linux-scripts/raw/${VERSION:-master}/dist/config/git/git-config.sh"
+  ) | bash -s -- \
+    [--default-branch DEFAULT_BRANCH='master'] \
+    --editor [EDITOR='vim'] --diff-tool [DIFF_TOOL='vimdiff'] \
+    --merge-tool [MERGE_TOOL='vimdiff'] [--ask] [--] NAME EMAIL
+  ~~~
+  
+  
+  **MAN:**
+  ~~~
+  Generate a custom ~/.gitconfig.extra.ini and attach it to the main ~/.gitignore.
+  The template is:
+  
+  ```
+  [init]
+    defaultBranch = {{ DEFAULT_BRANCH }}
+  [user]
+    name = {{ USER }}
+    email = {{ EMAIL }}
+  [alias]
+    co = commit
+    ch = checkout
+    rb = rebase
+    ls = log --oneline -10
+    ll = log --oneline
+    lg = log --oneline --graph --decorate --abbrev-commit
+    stat = status -u
+    dif = diff --color-words
+  [push]
+    default = simple
+  [pull]
+    ff = only
+  [core]
+    editor = {{ EDITOR }}
+    # editor = mcedit
+  [diff]
+    tool = {{ DIFF_TOOL }}
+    # tool = mcdiff
+  [merge]
+    tool = {{ MERGE_TOOL }}
+  [mergetool]
+    keepBackup = false
+  [difftool "{{ DIFF_TOOL }}"]
+    cmd = vimdiff $LOCAL $REMOTE
+  [difftool "mcdiff"]
+    cmd = mcdiff $LOCAL $REMOTE
+  ```
+  
+  USAGE:
+  =====
+  git-config.sh [--default-branch DEFAULT_BRANCH='master'] \
+    --editor [EDITOR='vim'] --diff-tool [DIFF_TOOL='vimdiff'] \
+    --merge-tool [MERGE_TOOL='vimdiff'] [--ask] [--] NAME EMAIL
+  
+  PARAMS:
+  ======
+  NAME    Git user name
+  EMAIL   Git user email
+  --      End of options
+  --default-branch  Self-explanatory
+  --editor          Self-explanatory
+  --diff-tool       Self-explanatory
+  --merge-tool      Self-explanatory
+  --ask             Provoke a prompt for all params
+  
+  DEMO:
+  ====
+  # With all possible defaults
+  git-config.sh 'Anonymous user' anonymous@dev.null
+  
+  # Prompt for params
+  git-config.sh --ask
+  ~~~
+  
+</details>
+
 <a id="config/tmux/tmux-default.sh"></a>
 <details><summary>config/tmux/tmux-default.sh</summary>
 

@@ -13,36 +13,32 @@ class() (
     [AGE]="0"
   )
 
-  print_help_usage() {
-    echo "
-      ${THE_SCRIPT} [--age AGE='${LH_DEFAULTS[age]}'] [--] NAME
-    "
-  }
+  print_help_usage() { echo "
+    ${THE_SCRIPT} [--age AGE='${LH_DEFAULTS[age]}'] [--] NAME
+  "; }
 
-  print_help() {
-    text_nice "
-      Get personal info
-     ,
-      USAGE:
-      =====
-      $(print_help_usage)
-     ,
-      PARAMS:
-      ======
-      NAME    Person's name
-      --      End of options
-      --age   Person's age
-      --ask   Provoke a prompt for all params
-     ,
-      DEMO:
-      ====
-      # With default age
-      ${THE_SCRIPT} Spaghetti
-     ,
-      # Provie info interactively
-     ${THE_SCRIPT} --ask
-    "
-  }
+  print_help() { text_nice "
+    Get personal info
+   ,
+    USAGE:
+    =====
+    $(print_help_usage)
+   ,
+    PARAMS:
+    ======
+    NAME    Person's name
+    --      End of options
+    --age   Person's age
+    --ask   Provoke a prompt for all params
+   ,
+    DEMO:
+    ====
+    # With default age
+    ${THE_SCRIPT} Spaghetti
+   ,
+    # Provie info interactively
+    ${THE_SCRIPT} --ask
+  "; }
 
   parse_params() {
     declare -a args

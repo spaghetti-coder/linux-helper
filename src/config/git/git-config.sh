@@ -1,24 +1,43 @@
 #!/usr/bin/env bash
 
+# .LH_SOURCE:lib/text.sh
+# .LH_SOURCE:base.ignore.sh
+
 class() (
   declare SELF="${FUNCNAME[0]}"
 
+  declare TEMPLATE; TEMPLATE="$(cat <<'HEREDOC_END'
+# .LH_SOURCE_NW:asset/template/git/gitconfig.extra.ini
+HEREDOC_END
+)"
+
   # If not a file, default to ssh-gen.sh script name
-  declare THE_SCRIPT=class.sh
+  declare THE_SCRIPT=git-config.sh
   grep -q -m 1 -- '.' "${0}" 2>/dev/null && THE_SCRIPT="$(basename -- "${0}")"
 
   # This is required for lh_params_apply_defaults
   # shellcheck disable=SC2034
   declare -A LH_DEFAULTS=(
-    [AGE]="0"
+    [DEFAULT_BRANCH]="master"
+    [EDITOR]="vim"
+    [DIFF_TOOL]="vimdiff"
+    [MERGE_TOOL]="vimdiff"
   )
 
   print_help_usage() { echo "
-    ${THE_SCRIPT} [--age AGE='${LH_DEFAULTS[age]}'] [--] NAME
+    ${THE_SCRIPT} [--default-branch DEFAULT_BRANCH='${LH_DEFAULTS[DEFAULT_BRANCH]}'] \\
+   ,  --editor [EDITOR='${LH_DEFAULTS[EDITOR]}'] --diff-tool [DIFF_TOOL='${LH_DEFAULTS[DIFF_TOOL]}'] \\
+   ,  --merge-tool [MERGE_TOOL='${LH_DEFAULTS[MERGE_TOOL]}'] [--ask] [--] NAME EMAIL
   "; }
 
+  # shellcheck disable=SC2001
   print_help() { text_nice "
-    Get personal info
+    Generate a custom ~/.gitconfig.extra.ini and attach it to the main ~/.gitignore.
+    The template is:
+   ,
+    \`\`\`
+    $(sed -e 's/^/,/' <<< "${TEMPLATE}")
+    \`\`\`
    ,
     USAGE:
     =====
@@ -26,17 +45,21 @@ class() (
    ,
     PARAMS:
     ======
-    NAME    Person's name
+    NAME    Git user name
+    EMAIL   Git user email
     --      End of options
-    --age   Person's age
-    --ask   Provoke a prompt for all params
+    --default-branch  Self-explanatory
+    --editor          Self-explanatory
+    --diff-tool       Self-explanatory
+    --merge-tool      Self-explanatory
+    --ask             Provoke a prompt for all params
    ,
     DEMO:
     ====
-    # With default age
-    ${THE_SCRIPT} Spaghetti
+    # With all possible defaults
+    ${THE_SCRIPT} 'Anonymous user' anonymous@dev.null
    ,
-    # Provie info interactively
+    # Prompt for params
     ${THE_SCRIPT} --ask
   "; }
 
@@ -51,20 +74,24 @@ class() (
       ${endopts} && param='*' || param="${1}"
 
       case "${param}" in
-        --            ) endopts=true ;;
-        -\?|-h|--help ) print_help; exit ;;
-        --usage       ) print_help_usage | text_nice; exit ;;
-        --age         ) lh_param_set AGE "${@:2:1}"; shift ;;
-        --ask         ) lh_param_set ASK true ;;
-        -*            ) lh_params_unsupported "${1}" ;;
-        *             ) args+=("${1}") ;;
+        --                ) endopts=true ;;
+        -\?|-h|--help     ) print_help; exit ;;
+        --usage           ) print_help_usage | text_nice; exit ;;
+        --default-branch  ) lh_param_set DEFAULT_BRANCH "${@:2:1}"; shift ;;
+        --editor          ) lh_param_set EDITOR "${@:2:1}"; shift ;;
+        --diff-tool       ) lh_param_set DIFF_TOOL "${@:2:1}"; shift ;;
+        --merge-tool      ) lh_param_set MERGE_TOOL "${@:2:1}"; shift ;;
+        --ask             ) lh_param_set ASK true ;;
+        -*                ) lh_params_unsupported "${1}" ;;
+        *                 ) args+=("${1}") ;;
       esac
 
       shift
     done
 
     [[ ${#args[@]} -gt 0 ]] && lh_param_set NAME "${args[0]}"
-    [[ ${#args[@]} -lt 2 ]] || lh_params_unsupported "${args[@]:1}"
+    [[ ${#args[@]} -gt 1 ]] && lh_param_set EMAIL "${args[1]}"
+    [[ ${#args[@]} -lt 3 ]] || lh_params_unsupported "${args[@]:2}"
   }
 
   trap_ask() {
@@ -101,6 +128,9 @@ class() (
   main() {
     # shellcheck disable=SC2015
     parse_params "${@}"
+
+    exit
+
     trap_ask
     check_required_params
 
@@ -117,9 +147,6 @@ class() (
 
   main "${@}"
 )
-
-# .LH_SOURCE:lib/text.sh
-# .LH_SOURCE:base.ignore.sh
 
 # .LH_NOSOURCE
 

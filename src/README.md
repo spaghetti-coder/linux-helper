@@ -18,6 +18,16 @@
 
 ## Config
 
+<a id="config/git/git-config.sh"></a>
+<details><summary>config/git/git-config.sh</summary>
+
+  [Link to the section](#config/git/git-config.sh)
+
+  View [`gitconfig.extra.ini` template](@@BASE_RAW_URL/master/src/asset/template/git/gitconfig.extra.ini)
+  <!-- .LH_ADHOC_USAGE:config/git/git-config.sh -->
+  <!-- .LH_HELP:config/git/git-config.sh -->
+</details>
+
 <a id="config/tmux/tmux-default.sh"></a>
 <details><summary>config/tmux/tmux-default.sh</summary>
 
