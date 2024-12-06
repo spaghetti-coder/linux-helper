@@ -175,8 +175,8 @@ compile_bash_file() (
       Compile bash script. Processing:
       * Replace '# .LH_SOURCE:path/to/lib.sh' comment lines with content of the
      ,  pointed libs, while path to the lib is relative to LIBS_PATH directory
-      * Everything after '# .LH_NOSOURCE' comment in the sourced files is
-     ,  ignored for sourcing
+      * Everything after '# .LH_NOSOURCE' comment in the sourced files is ignored
+     ,  for sourcing
       * Sourced code is wrapped with comment. To avoid wrapping use
      ,  '# .LH_SOURCE_NW:path/to/lib.sh' comment
       * Shebang from the sourced files are removed in the resulting file

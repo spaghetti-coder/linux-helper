@@ -33,8 +33,8 @@
   Compile bash script. Processing:
   * Replace '# .LH_SOURCE:path/to/lib.sh' comment lines with content of the
     pointed libs, while path to the lib is relative to LIBS_PATH directory
-  * Everything after '# .LH_NOSOURCE' comment in the sourced files is
-    ignored for sourcing
+  * Everything after '# .LH_NOSOURCE' comment in the sourced files is ignored
+    for sourcing
   * Sourced code is wrapped with comment. To avoid wrapping use
     '# .LH_SOURCE_NW:path/to/lib.sh' comment
   * Shebang from the sourced files are removed in the resulting file
@@ -180,7 +180,7 @@
   * Replace '# .LH_SOURCE:path/to/lib.sh' comment lines with content of the
     pointed libs, while path to the lib is relative to SRC_DIR directory
   * Everything after '# .LH_NOSOURCE' comment in the sourced files is ignored
-   for sourcing
+    for sourcing
   * Sourced code is wrapped with comment. To avoid wrapping use comment
     '# .LH_SOURCE_NW:path/to/lib.sh' or '# .LH_SOURCE_NOW_WRAP:path/to/lib.sh'
   * Shebang from the sourced files are removed in the resulting file
@@ -407,7 +407,23 @@ Code compilation happens on `pre-commit`. It can be done manually by issuing:
 
 This triggers:
 
-* `short/compile-bash-project.sh src dest --no-ext '.ignore.sh'`
+* `short/compile-bash-project.sh src dest --no-ext '.ignore.sh'`. <details>
+    <summary>More details on compilation processing</summary>
+    
+    
+    **AD HOC:**
+    ~~~sh
+    # Review and change input params (after "bash -s --")
+    # VERSION can be changed to any treeish
+    (
+      VERSION='master'
+      curl -V &>/dev/null && dl_tool=(curl -sL) || dl_tool=(wget -qO-)
+      set -x; "${dl_tool[@]}" "https://raw.githubusercontent.com/spaghetti-coder/linux-helper/${VERSION:-master}/dist/short/compile-bash-project.sh" \
+      || "${dl_tool[@]}" "https://bitbucket.org/kvedenskii/linux-scripts/raw/${VERSION:-master}/dist/short/compile-bash-project.sh"
+    ) | bash -s -- --help | less
+    ~~~
+    
+  </details>
 * custom `*.md` files compilation
   * TODO: describe
 

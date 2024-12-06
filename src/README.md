@@ -66,7 +66,11 @@ Code compilation happens on `pre-commit`. It can be done manually by issuing:
 
 This triggers:
 
-* `short/compile-bash-project.sh src dest --no-ext '.ignore.sh'`
+* `short/compile-bash-project.sh src dest --no-ext '.ignore.sh'`. <details>
+    <summary>More details on compilation processing</summary>
+    
+    <!-- .LH_ADHOC:short/compile-bash-project.sh --help | less -->
+  </details>
 * custom `*.md` files compilation
   * TODO: describe
 
