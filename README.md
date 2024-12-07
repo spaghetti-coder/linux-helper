@@ -87,6 +87,52 @@
   
 </details>
 
+<a id="bin/demo.sh"></a>
+<details><summary>bin/demo.sh</summary>
+
+  [Link to the section](#bin/demo.sh)
+  
+  **AD HOC:**
+  ~~~sh
+  # Review and change input params (after "bash -s --")
+  # VERSION can be changed to any treeish
+  (
+    VERSION='master'
+    curl -V &>/dev/null && dl_tool=(curl -sL) || dl_tool=(wget -qO-)
+    set -x; "${dl_tool[@]}" "https://raw.githubusercontent.com/spaghetti-coder/linux-helper/${VERSION:-master}/dist/bin/demo.sh" \
+    || "${dl_tool[@]}" "https://bitbucket.org/kvedenskii/linux-scripts/raw/${VERSION:-master}/dist/bin/demo.sh"
+  ) | bash -s -- \
+    [--age AGE='0'] [--domain DOMAIN="$(hostname -f)"] [--] NAME
+  ~~~
+  
+  
+  **MAN:**
+  ~~~
+  Just a demo boilerplate project to get user info.
+  
+  USAGE:
+  =====
+  demo.sh [--age AGE='0'] [--domain DOMAIN="$(hostname -f)"] [--] NAME
+  
+  PARAMS:
+  ======
+  NAME    Person's name
+  --      End of options
+  --age     Person's age
+  --domain  Person's domain
+  --ask     Provoke a prompt for all params
+  
+  DEMO:
+  ====
+  # With all defaults
+  demo.sh Spaghetti
+  
+  # Provie info interactively
+  demo.sh --ask
+  ~~~
+  
+</details>
+
 <a id="bin/ssh-gen.sh"></a>
 <details><summary>bin/ssh-gen.sh</summary>
 

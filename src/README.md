@@ -10,6 +10,7 @@
 ## Tools
 
 <!-- .LH_DETAILS:bin/compile-bash-file.sh -->
+<!-- .LH_DETAILS:bin/demo.sh -->
 <!-- .LH_DETAILS:bin/ssh-gen.sh -->
 <!-- .LH_DETAILS:short/compile-bash-project.sh -->
 <!-- .LH_DETAILS:short/ssh-gen-github.sh -->
