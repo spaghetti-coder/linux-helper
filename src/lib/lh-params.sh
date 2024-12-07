@@ -29,13 +29,19 @@ lh_params_unsupported() {
 # lh_params_defaults PARAM_NAME1='DEFAULT_VAL'...
 lh_params_defaults() {
   [[ "${FUNCNAME[1]}" != _lh_params_init ]] && { _lh_params_init "${@}"; return $?; }
-
   declare kv pname pval
   for kv in "${@}"; do
     kv="${kv}="
     pname="${kv%%=*}"
     pval="${kv#*=}"; pval="${pval::-1}"
     LH_PARAMS_DEFAULTS["${pname}"]="${pval}"
+  done
+}
+
+lh_params_apply_defaults() {
+  [[ "${FUNCNAME[1]}" != _lh_params_init ]] && { _lh_params_init "${@}"; return $?; }
+  declare pname; for pname in "${!LH_PARAMS_DEFAULTS[@]}"; do
+    [[ -n "${LH_PARAMS[${pname}]+x}" ]] || LH_PARAMS["${pname}"]="${LH_PARAMS_DEFAULTS[${pname}]}"
   done
 }
 
