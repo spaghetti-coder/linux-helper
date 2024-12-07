@@ -1,39 +1,36 @@
 #!/usr/bin/env bash
 
-config_tmux_default() (
+demo() (
   { # Service vars
+    declare -r SELF="${FUNCNAME[0]}"
 
-    # If not a file, default to ssh-gen.sh script name
-    declare THE_SCRIPT=tmux-default.sh
+    # If not a file, default to demo.sh script name
+    declare THE_SCRIPT=demo.sh
     grep -q -m 1 -- '.' "${0}" 2>/dev/null && THE_SCRIPT="$(basename -- "${0}")"
   }
 
-  declare CONFIG; CONFIG="$(text_nice "
-    # default.conf
-    
-    set-option -g prefix C-Space
-    set-option -g allow-rename off
-    set -g history-limit 100000
-    set -g renumber-windows on
-    set -g base-index 1
-    set -g display-panes-time 3000
-    setw -g pane-base-index 1
-    setw -g aggressive-resize on
-  ")"
-
   # shellcheck disable=SC2317
+  # shellcheck disable=SC2016
+  init() {
+    # Ensure clean environment
+    lh_params reset
+
+    # Configure defaults
+    lh_params defaults \
+      AGE=0 \
+      DOMAIN='$(hostname -f)' \
+      ASK=false
+
+    # Configure custom defaults
+    lh_params_default_DOMAIN() { hostname -f; }
+  }
+
   print_usage() { echo "
-    ${THE_SCRIPT} [--] [CONFD=\"$(lh_params default-string CONFD)\"]
+    ${THE_SCRIPT} [--ask] [--age AGE='$(lh_params default-string AGE)'] [--domain DOMAIN=\"$(lh_params default-string DOMAIN)\"] [--] NAME
   "; }
 
-  # shellcheck disable=SC2317
   print_help() { text_nice "
-    Generate basic tmux configuration preset and source it to ~/.tmux.conf file. The
-    config is with the following content:
-   ,
-    \`\`\`
-    ${CONFIG}
-    \`\`\`
+    Just a demo boilerplate project to get user info.
    ,
     USAGE:
     =====
@@ -41,120 +38,79 @@ config_tmux_default() (
    ,
     PARAMS:
     ======
-    CONFD   Confd directory to store tmux custom configurations
+    NAME    Person's name
     --      End of options
+    --ask     Provoke a prompt for all params
+    --age     Person's age
+    --domain  Person's domain
    ,
     DEMO:
     ====
-    # Generate with all defaults to \"$(lh_params default-string CONFD)/default.conf\"
-    ${THE_SCRIPT}
+    # With all defaults
+    ${THE_SCRIPT} Spaghetti
    ,
-    # Generate to /etc/tmux/default.conf. Requires sudo for non-root user
-    sudo ${THE_SCRIPT} /etc/tmux
+    # Provie info interactively
+    ${THE_SCRIPT} --ask
   "; }
 
+  parse_params() {
+    declare -a args
+
+    declare endopts=false
+    declare param
+    while [[ ${#} -gt 0 ]]; do
+      ${endopts} && param='*' || param="${1}"
+
+      case "${param}" in
+        --            ) endopts=true ;;
+        -\?|-h|--help ) print_help; exit ;;
+        --usage       ) print_usage | text_nice; exit ;;
+        --age         ) lh_params set AGE "${@:2:1}"; shift ;;
+        --ask         ) lh_params set ASK true ;;
+        -*            ) lh_params unsupported "${1}" ;;
+        *             ) args+=("${1}") ;;
+      esac
+
+      shift
+    done
+
+    [[ ${#args[@]} -gt 0 ]] && lh_params set NAME "${args[0]}"
+    [[ ${#args[@]} -lt 2 ]] || lh_params unsupported "${args[@]:1}"
+  }
+
+  trap_ask() {
+    "$(lh_params get ASK)" || return 0
+
+    lh_params ask-config \
+      , NAME "Choose any name for your user" "Name: " \
+      , AGE "Age: "
+    lh_params ask-config DOMAIN "Domain: "
+
+    lh_params ask
+  }
+
+  check_params() {
+    lh_params get NAME >/dev/null || lh_params noval NAME
+    lh_params is-blank NAME && lh_params errbag "NAME can't be blank"
+  }
+
   main() {
-    config_tmux_base "${@}" || return
+    init
+    parse_params "${@}"
+    trap_ask
+    check_params
 
-    declare source_line="source-file ${CONFD_ALIAS}/default.conf"
+    lh_params invalids >&2 && {
+      echo "FATAL (${SELF})" >&2
+      return 1
+    }
 
-    config_tmux_create_confd_file "$(lh_params get CONFD)/default.conf" "${CONFIG}" \
-    && config_tmux_append_source_line "${source_line}"
+    echo "Name: $(lh_params get NAME)"
+    echo "Age: $(lh_params get AGE)"
+    echo "Domain: $(lh_params get DOMAIN)"
   }
 
   main "${@}"
-)
-# .LH_SOURCED: {{ config/tmux/tmux-base.ignore.sh }}
-config_tmux_base() {
-  { # Service vars
-    declare SELF="${FUNCNAME[0]}"
-
-    HOME_DIR="${HOME}"
-    INSTALLED_FILES_UMASK=0077
-    CONFD_ALIAS=""
-  }
-
-  _config_tmux_base_init
-  _config_tmux_base_parse_params "${@}"
-  _config_tmux_base_check_params
-
-  lh_params invalids >&2 && {
-    echo "FATAL (${SELF})" >&2
-    return 1
-  }
-
-  CONFD_ALIAS="$(alias_home_in_path "$(lh_params get CONFD)")"
-}
-
-# shellcheck disable=SC2317
-_config_tmux_base_init() {
-  # Ensure clean environment
-  lh_params reset
-
-  if is_user_privileged; then
-    HOME_DIR="$(privileged_user_home)"
-    INSTALLED_FILES_UMASK=0022
-  fi
-
-  # shellcheck disable=SC2016
-  lh_params defaults \
-    CONFD='${HOME}/.tmux'
-
-  lh_params_default_CONFD() { cat <<< "${HOME_DIR}/.tmux"; }
-}
-
-_config_tmux_base_parse_params() {
-  declare -a args
-
-  declare endopts=false
-  declare param
-  while [[ ${#} -gt 0 ]]; do
-    ${endopts} && param='*' || param="${1}"
-
-    case "${param}" in
-      --            ) endopts=true ;;
-      -\?|-h|--help ) print_help; exit ;;
-      --usage       ) print_usage | text_nice; exit ;;
-      -*            ) lh_params unsupported "${1}" ;;
-      *             ) args+=("${1}") ;;
-    esac
-
-    shift
-  done
-
-  [[ ${#args[@]} -gt 0 ]] && lh_params set CONFD "$(realpath -m -- "${args[0]}" 2>/dev/null)"
-  [[ ${#args[@]} -lt 2 ]] || lh_params unsupported "${args[@]:1}"
-}
-
-_config_tmux_base_check_params() {
-  lh_params is-blank CONFD && lh_params errbag "CONFD can't be blank"
-}
-
-config_tmux_create_confd_file() (
-  declare dest="${1}"
-  declare conf="${2}"
-  declare confd; confd="$(lh_params get CONFD)"
-
-  set -x
-  umask -- "${INSTALLED_FILES_UMASK}"
-  mkdir -p -- "${confd}" \
-  && tee -- "${dest}" <<< "${conf}" >/dev/null
-)
-
-config_tmux_append_source_line() (
-  declare source_line="${1}"
-  declare -a tee_cmd_prefix=(tee -a --)
-  declare -a tee_cmd=("${tee_cmd_prefix[@]}" "${HOME_DIR}/.tmux.conf")
-
-  if is_user_privileged; then
-    declare home; home="$(escape_single_quotes "${HOME_DIR}")"
-    tee_cmd=(su -l "${SUDO_USER}" -c "umask 0077; ${tee_cmd_prefix[*]} '${home}/.tmux.conf'")
-  fi
-
-  grep -qFx -- "${source_line}" "${HOME_DIR}/.tmux.conf" 2>/dev/null \
-  || printf -- '%s\n' "${source_line}" | (
-    set -x; umask 0077; "${tee_cmd[@]}" >/dev/null
-  )
 )
 # .LH_SOURCED: {{ lib/lh-params.sh }}
 lh_params() { lh_params_"${1//-/_}" "${@:2}"; }
@@ -320,34 +276,6 @@ _lh_params_init() {
   }
 }
 # .LH_SOURCED: {{/ lib/lh-params.sh }}
-# .LH_SOURCED: {{ lib/system.sh }}
-is_user_root() { [[ "$(id -u)" -eq 0 ]]; }
-is_user_privileged() { is_user_root && [[ -n "${SUDO_USER}" ]]; }
-
-privileged_user_home() { eval echo ~"${SUDO_USER}"; }
-
-alias_home_in_path() {
-  declare path="${1}" home="${2:-${HOME}}"
-  declare home_rex; home_rex="$(escape_sed_expr "${home%/}")"
-
-  # shellcheck disable=SC2001
-  sed -e 's/^'"${home_rex}"'/~/' <<< "${path}"
-}
-
-is_port_valid() {
-  grep -qx -- '[0-9]\+' <<< "${1}" \
-  && [[ "${1}" -ge 0 ]] \
-  && [[ "${1}" -le 65535 ]]
-}
-# .LH_SOURCED: {{ lib/basic.sh }}
-# https://stackoverflow.com/a/2705678
-escape_sed_expr()  { sed -e 's/[]\/$*.^[]/\\&/g' <<< "${1-$(cat)}"; }
-escape_sed_repl()  { sed -e 's/[\/&]/\\&/g' <<< "${1-$(cat)}"; }
-
-escape_single_quotes()  { declare str="${1-$(cat)}"; cat <<< "${str//\'/\'\\\'\'}"; }
-escape_double_quotes()  { declare str="${1-$(cat)}"; cat <<< "${str//\"/\"\\\"\"}"; }
-# .LH_SOURCED: {{/ lib/basic.sh }}
-# .LH_SOURCED: {{/ lib/system.sh }}
 # .LH_SOURCED: {{ lib/text.sh }}
 # shellcheck disable=SC2001
 # shellcheck disable=SC2120
@@ -357,10 +285,9 @@ text_trim() { text_ltrim <<< "${1-$(cat)}" | text_rtrim; }
 text_rmblank() { grep -v '^\s*$' <<< "${1-$(cat)}"; return 0; }
 text_nice() { text_trim <<< "${1-$(cat)}" | text_rmblank | sed -e 's/^,//'; }
 # .LH_SOURCED: {{/ lib/text.sh }}
-# .LH_SOURCED: {{/ config/tmux/tmux-base.ignore.sh }}
 
 # .LH_NOSOURCE
 
 (return &>/dev/null) || {
-  config_tmux_default "${@}"
+  demo "${@}"
 }

@@ -1,39 +1,46 @@
 #!/usr/bin/env bash
 
 ssh_gen_github() (
-  # If not a file, default to ssh-gen.sh script name
-  declare THE_SCRIPT=ssh-gen-github.sh
-  grep -q -m 1 -- '.' "${0}" 2>/dev/null && THE_SCRIPT="$(basename -- "${0}")"
+  { # Service vars
+    # declare -r SELF="${FUNCNAME[0]}"
 
+    # If not a file, default to demo.sh script name
+    declare THE_SCRIPT="ssh-gen-vc.sh"
+    grep -q -m 1 -- '.' "${0}" 2>/dev/null && THE_SCRIPT="$(basename -- "${0}")"
+  }
+
+
+  # shellcheck disable=SC2016
   declare -A DEFAULTS=(
     [account]=git
     [host]=github.com
+    [comment]='$(id -un)@$(hostname -f)'
   )
 
-  declare -a UPSTREAM_PARAMS=("${DEFAULTS[account]}" "${DEFAULTS[host]}")
+  declare -a DOWNSTREAM=(ssh_gen_vc "${DEFAULTS[host]}")
 
-  print_help_usage() {
-    echo "
-      ${THE_SCRIPT} [--host HOST='${DEFAULTS[host]}'] \\
-     ,  [--comment COMMENT=\"\$(id -un)@\$(hostname -f)\"] [--] [ACCOUNT='${DEFAULTS[account]}']
-    "
-  }
+  print_usage() { echo "
+    ${THE_SCRIPT} [--ask] [--host HOST='${DEFAULTS[host]}'] \\
+    ,  [--comment COMMENT=\"${DEFAULTS[comment]}\"] [--] [ACCOUNT='${DEFAULTS[account]}']
+  "; }
 
   print_help() {
     declare -r ACCOUNT=foo
 
     text_nice "
-      Generate private and public key pair and configure ~/.ssh/config file to
-      use them. It is a github centric shortcut of ssh-gen.sh tool.
+      github.com centric shortcut of ssh-gen.sh tool. Generate private and public key
+      pair and configure ~/.ssh/config file to use them.
      ,
       USAGE:
       =====
-      $(print_help_usage)
+      $(print_usage)
      ,
       PARAMS:
       ======
-      ACCOUNT   Github account, only used to form cert filename
+      ACCOUNT   Github account name, only used to make cert filename, for SSH
+     ,          connection 'git' user will be used.
       --        End of options
+      --ask     Provoke a prompt for all params
       --host    SSH host match pattern
       --comment Certificate comment
      ,
@@ -48,7 +55,7 @@ ssh_gen_github() (
   }
 
   parse_params() {
-    declare -a args
+    declare -a invals
 
     declare endopts=false
     declare param
@@ -58,30 +65,34 @@ ssh_gen_github() (
       case "${param}" in
         --            ) endopts=true ;;
         -\?|-h|--help ) print_help; exit ;;
-        --usage       ) print_help_usage | text_nice; exit ;;
-        --host        ) UPSTREAM_PARAMS+=(--host "${2}"); shift ;;
-        --comment     ) UPSTREAM_PARAMS+=(--comment "${2}"); shift ;;
-        *             ) args+=("${1}") ;;
+        --usage       ) print_usage | text_nice; exit ;;
+        --ask         ) DOWNSTREAM+=(--ask) ;;
+        --host        ) DOWNSTREAM+=(--host "${@:2:1}"); shift ;;
+        --comment     ) DOWNSTREAM+=(--comment "${@:2:1}"); shift ;;
+        -*            ) invals+=("${1}") ;;
+        *             ) DOWNSTREAM+=("${1}") ;;
       esac
 
       shift
     done
 
-    [[ ${#args[@]} -gt 0 ]] && UPSTREAM_PARAMS+=(--filename "${args[0]}")
-    [[ ${#args[@]} -lt 2 ]] || UPSTREAM_PARAMS+=(-- "${args[@]:1}")
+    DOWNSTREAM+=(-- "${invals[@]}")
   }
 
   main() {
     parse_params "${@}"
 
-    ssh_gen "${UPSTREAM_PARAMS[@]}"
+    LH_PARAMS_ASK_EXCLUDE='
+      HOSTNAME
+      PORT
+    ' "${DOWNSTREAM[@]}"
   }
 
   main "${@}"
 )
 
-# .LH_SOURCE:bin/ssh-gen.sh
 # .LH_SOURCE:lib/text.sh
+# .LH_SOURCE:short/ssh-gen-vc.sh
 
 # .LH_NOSOURCE
 

@@ -32,8 +32,6 @@ BASE_VERSION=master
   . <(cat <<< "${deps}")
 }
 
-echo "# ===== ${SELF}: compiling ${SRC_MD} => ${DEST_MD}" >&2
-
 # shellcheck disable=SC2317
 replace_details_cbk() {
   REPLACEMENT=$'\n''<a id="'"${1}"'"></a>'
@@ -102,16 +100,22 @@ replace_base_raw_url() {
 
 RC=0
 
+echo "# ===== ${SELF}: compiling ${SRC_MD} => ${DEST_MD}" >&2
+
 (
   set -o pipefail
-  cat -- "${SRC_MD}" \
-  | replace_marker '.LH_DETAILS:' replace_details_cbk '<!--' '-->' \
-  | replace_marker '.LH_HELP:' replace_help_cbk '<!--' '-->' \
-  | RAPLACE_ADHOC_USAGE=true replace_marker '.LH_ADHOC_USAGE:' replace_adhoc_cbk '<!--' '-->' \
-  | RAPLACE_ADHOC_USAGE=false replace_marker '.LH_ADHOC:' replace_adhoc_cbk '<!--' '-->' \
-  | replace_base_raw_url \
-  | (set -x; tee -- "${DEST_MD}" >/dev/null)
-) || RC=1
+  (
+    (
+      cat -- "${SRC_MD}" \
+      | replace_marker '.LH_DETAILS:' replace_details_cbk '<!--' '-->' \
+      | replace_marker '.LH_HELP:' replace_help_cbk '<!--' '-->' \
+      | RAPLACE_ADHOC_USAGE=true replace_marker '.LH_ADHOC_USAGE:' replace_adhoc_cbk '<!--' '-->' \
+      | RAPLACE_ADHOC_USAGE=false replace_marker '.LH_ADHOC:' replace_adhoc_cbk '<!--' '-->' \
+      | replace_base_raw_url \
+      | (set -x; tee -- "${DEST_MD}" >/dev/null)
+    ) 3>&2 2>&1 1>&3
+  ) | sed -e 's/^/  /'
+) 3>&2 2>&1 1>&3 || RC=1
 
 if [[ ${RC} -lt 1 ]]; then
   echo "# ===== ${SELF} OK" >&2

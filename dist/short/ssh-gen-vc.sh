@@ -1,105 +1,5 @@
 #!/usr/bin/env bash
 
-ssh_gen_github() (
-  { # Service vars
-    # declare -r SELF="${FUNCNAME[0]}"
-
-    # If not a file, default to demo.sh script name
-    declare THE_SCRIPT="ssh-gen-vc.sh"
-    grep -q -m 1 -- '.' "${0}" 2>/dev/null && THE_SCRIPT="$(basename -- "${0}")"
-  }
-
-
-  # shellcheck disable=SC2016
-  declare -A DEFAULTS=(
-    [account]=git
-    [host]=github.com
-    [comment]='$(id -un)@$(hostname -f)'
-  )
-
-  declare -a DOWNSTREAM=(ssh_gen_vc "${DEFAULTS[host]}")
-
-  print_usage() { echo "
-    ${THE_SCRIPT} [--ask] [--host HOST='${DEFAULTS[host]}'] \\
-    ,  [--comment COMMENT=\"${DEFAULTS[comment]}\"] [--] [ACCOUNT='${DEFAULTS[account]}']
-  "; }
-
-  print_help() {
-    declare -r ACCOUNT=foo
-
-    text_nice "
-      github.com centric shortcut of ssh-gen.sh tool. Generate private and public key
-      pair and configure ~/.ssh/config file to use them.
-     ,
-      USAGE:
-      =====
-      $(print_usage)
-     ,
-      PARAMS:
-      ======
-      ACCOUNT   Github account name, only used to make cert filename, for SSH
-     ,          connection 'git' user will be used.
-      --        End of options
-      --ask     Provoke a prompt for all params
-      --host    SSH host match pattern
-      --comment Certificate comment
-     ,
-      DEMO:
-      ====
-      # Generate with all defaults to PK file ~/.ssh/${DEFAULTS[host]}/${DEFAULTS[account]}
-      ${THE_SCRIPT}
-     ,
-      # Generate to ~/.ssh/${DEFAULTS[host]}/${ACCOUNT}
-      ${THE_SCRIPT} ${ACCOUNT} --host github.com-${ACCOUNT} --comment Zoo
-    "
-  }
-
-  parse_params() {
-    declare -a invals
-
-    declare endopts=false
-    declare param
-    while [[ ${#} -gt 0 ]]; do
-      ${endopts} && param='*' || param="${1}"
-
-      case "${param}" in
-        --            ) endopts=true ;;
-        -\?|-h|--help ) print_help; exit ;;
-        --usage       ) print_usage | text_nice; exit ;;
-        --ask         ) DOWNSTREAM+=(--ask) ;;
-        --host        ) DOWNSTREAM+=(--host "${@:2:1}"); shift ;;
-        --comment     ) DOWNSTREAM+=(--comment "${@:2:1}"); shift ;;
-        -*            ) invals+=("${1}") ;;
-        *             ) DOWNSTREAM+=("${1}") ;;
-      esac
-
-      shift
-    done
-
-    DOWNSTREAM+=(-- "${invals[@]}")
-  }
-
-  main() {
-    parse_params "${@}"
-
-    LH_PARAMS_ASK_EXCLUDE='
-      HOSTNAME
-      PORT
-    ' "${DOWNSTREAM[@]}"
-  }
-
-  main "${@}"
-)
-# .LH_SOURCED: {{ lib/text.sh }}
-# shellcheck disable=SC2001
-# shellcheck disable=SC2120
-text_ltrim() { sed -e 's/^\s\+//' <<< "${1-$(cat)}"; }
-text_rtrim() { sed -e 's/\s\+$//' <<< "${1-$(cat)}"; }
-text_trim() { text_ltrim <<< "${1-$(cat)}" | text_rtrim; }
-text_rmblank() { grep -v '^\s*$' <<< "${1-$(cat)}"; return 0; }
-text_nice() { text_trim <<< "${1-$(cat)}" | text_rmblank | sed -e 's/^,//'; }
-# .LH_SOURCED: {{/ lib/text.sh }}
-# .LH_SOURCED: {{ short/ssh-gen-vc.sh }}
 ssh_gen_vc() (
   { # Service vars
     declare -r SELF="${FUNCNAME[0]}"
@@ -759,13 +659,20 @@ is_port_valid() {
   && [[ "${1}" -le 65535 ]]
 }
 # .LH_SOURCED: {{/ lib/system.sh }}
+# .LH_SOURCED: {{ lib/text.sh }}
+# shellcheck disable=SC2001
+# shellcheck disable=SC2120
+text_ltrim() { sed -e 's/^\s\+//' <<< "${1-$(cat)}"; }
+text_rtrim() { sed -e 's/\s\+$//' <<< "${1-$(cat)}"; }
+text_trim() { text_ltrim <<< "${1-$(cat)}" | text_rtrim; }
+text_rmblank() { grep -v '^\s*$' <<< "${1-$(cat)}"; return 0; }
+text_nice() { text_trim <<< "${1-$(cat)}" | text_rmblank | sed -e 's/^,//'; }
+# .LH_SOURCED: {{/ lib/text.sh }}
 
 # .LH_SOURCED: {{/ bin/ssh-gen.sh }}
-
-# .LH_SOURCED: {{/ short/ssh-gen-vc.sh }}
 
 # .LH_NOSOURCE
 
 (return &>/dev/null) || {
-  ssh_gen_github "${@}"
+  ssh_gen_vc "${@}"
 }

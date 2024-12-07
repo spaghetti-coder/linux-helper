@@ -2,63 +2,63 @@
 
 # shellcheck disable=SC2317
 compile_bash_project() (
-  declare SELF="${FUNCNAME[0]}"
+  { # Service vars
+    declare SELF="${FUNCNAME[0]}"
 
-  # If not a file, default to ssh-gen.sh script name
-  declare THE_SCRIPT=compile-bash-project.sh
-  grep -q -m 1 -- '.' "${0}" 2>/dev/null && THE_SCRIPT="$(basename -- "${0}")"
+    # If not a file, default to ssh-gen.sh script name
+    declare THE_SCRIPT=compile-bash-project.sh
+    grep -q -m 1 -- '.' "${0}" 2>/dev/null && THE_SCRIPT="$(basename -- "${0}")"
+  }
 
+  declare DEFAULT_EXT='.sh'
   declare -a EXTS
   declare -a NO_EXTS
 
   declare -a SRC_FILES
 
-  print_help_usage() {
-    echo "
-      ${THE_SCRIPT} [--ext EXT='.sh']... [--no-ext NO_EXT]... [--] \\
-     ,  SRC_DIR DEST_DIR
-    "
+  init() {
+    # Ensure clean environment
+    lh_params reset
   }
 
-  print_help() {
-    text_nice "
-      Shortcut for compile-bash-file.sh.
-     ,
-      Compile bash project. Processing:
-      * Compile each file under SRC_DIR to same path of DEST_DIR
-      * Replace '# .LH_SOURCE:path/to/lib.sh' comment lines with content of the
-     ,  pointed libs, while path to the lib is relative to SRC_DIR directory
-      * Everything after '# .LH_NOSOURCE' comment in the sourced files is ignored
-     ,  for sourcing
-      * Sourced code is wrapped with comment. To avoid wrapping use comment
-     ,  '# .LH_SOURCE_NW:path/to/lib.sh' or '# .LH_SOURCE_NOW_WRAP:path/to/lib.sh'
-      * Shebang from the sourced files are removed in the resulting file
-     ,
-      USAGE:
-      =====
-      $(print_help_usage)
-     ,
-      PARAMS:
-      ======
-      SRC_DIR     Source directory
-      DEST_DIR    Compilation destination directory
-      --          End of options
-      --ext       Array of extension patterns of files to be compiled
-      --no-ext    Array of exclude extension patterns
-     ,
-      DEMO:
-      ====
-      # Compile all '.sh' and '.bash' files under 'src' directory to 'dest'
-      # excluding files with '.hidden.sh' and '.secret.sh' extensions
-      ${THE_SCRIPT} ./src ./dest --ext '.sh' --ext '.bash' \\
-     ,  --no-ext '.hidden.sh' --no-ext '.secret.sh'
-    "
-  }
+  print_usage() { echo "
+    ${THE_SCRIPT} [--ext EXT='${DEFAULT_EXT}']... [--no-ext NO_EXT]... [--] \\
+   ,  SRC_DIR DEST_DIR
+  "; }
+
+  print_help() { text_nice "
+    Shortcut for compile-bash-file.sh to compile complete bash project. Processing:
+    * Compile each file under SRC_DIR to same path of DEST_DIR
+    * Replace '# .LH_SOURCE:path/to/lib.sh' comment lines with content of the
+   ,  pointed libs, while path to the lib is relative to SRC_DIR directory
+    * Everything after '# .LH_NOSOURCE' comment in the sourced files is ignored
+   ,  for sourcing
+    * Sourced code is wrapped with comment. To avoid wrapping use comment
+   ,  '# .LH_SOURCE_NW:path/to/lib.sh' or '# .LH_SOURCE_NOW_WRAP:path/to/lib.sh'
+    * Shebang from the sourced files are removed in the resulting file
+   ,
+    USAGE:
+    =====
+    $(print_usage)
+   ,
+    PARAMS:
+    ======
+    SRC_DIR     Source directory
+    DEST_DIR    Compilation destination directory
+    --          End of options
+    --ext       Array of extension patterns of files to be compiled
+    --no-ext    Array of exclude extension patterns
+   ,
+    DEMO:
+    ====
+    # Compile all '.sh' and '.bash' files under 'src' directory to 'dest'
+    # excluding files with '.hidden.sh' and '.secret.sh' extensions
+    ${THE_SCRIPT} ./src ./dest --ext '.sh' --ext '.bash' \\
+   ,  --no-ext '.hidden.sh' --no-ext '.secret.sh'
+  "; }
 
   parse_params() {
     declare -a args
-
-    lh_params_reset
 
     declare endopts=false
     declare param
@@ -69,28 +69,31 @@ compile_bash_project() (
       case "${param}" in
         --            ) endopts=true ;;
         -\?|-h|--help ) print_help; exit ;;
-        --usage       ) print_help_usage | text_nice; exit ;;
-        --ext         ) [[ -n "${2+x}" ]] && EXTS+=("${2}") || lh_params_noval EXT; shift ;;
-        --no-ext      ) [[ -n "${2+x}" ]] && NO_EXTS+=("${2}") || lh_params_noval NO_EXT; shift ;;
-        -*            ) lh_params_unsupported "${1}" ;;
+        --usage       ) print_usage | text_nice; exit ;;
+        --ext         ) [[ -n "${2+x}" ]] && { EXTS+=("${2}"); shift; } || lh_params noval EXT ;;
+        --no-ext      ) [[ -n "${2+x}" ]] && { NO_EXTS+=("${2}"); shift; } || lh_params noval NO_EXT ;;
+        -*            ) lh_params unsupported "${1}" ;;
         *             ) args+=("${1}") ;;
       esac
 
       shift
     done
 
-    [[ ${#args[@]} -gt 0 ]] && lh_param_set SRC_DIR "$(sed -e 's/\/*$//' <<< "${args[0]}")"
-    [[ ${#args[@]} -gt 1 ]] && lh_param_set DEST_DIR "$(sed -e 's/\/*$//' <<< "${args[1]}")"
-    [[ ${#args[@]} -lt 3 ]] || lh_params_unsupported "${args[@]:2}"
+    [[ ${#args[@]} -gt 0 ]] && lh_params set SRC_DIR "$(sed -e 's/\/*$//' <<< "${args[0]}")"
+    [[ ${#args[@]} -gt 1 ]] && lh_params set DEST_DIR "$(sed -e 's/\/*$//' <<< "${args[1]}")"
+    [[ ${#args[@]} -lt 3 ]] || lh_params unsupported "${args[@]:2}"
   }
 
-  check_required_params() {
-    [[ -n "${LH_PARAMS[SRC_DIR]}" ]]  || lh_params_noval SRC_DIR
-    [[ -n "${LH_PARAMS[DEST_DIR]}" ]] || lh_params_noval DEST_DIR;
+  check_params() {
+    lh_params get SRC_DIR >/dev/null  || lh_params noval SRC_DIR
+    lh_params get DEST_DIR >/dev/null || lh_params noval DEST_DIR
+
+    lh_params is-blank SRC_DIR >/dev/null   && lh_params errbag "SRC_DIR can't be blank"
+    lh_params is-blank DEST_DIR >/dev/null  && lh_params errbag "DEST_DIR can't be blank"
   }
 
   apply_defaults() {
-    [[ ${#EXTS[@]} -gt 0 ]] || EXTS=('.sh')
+    [[ ${#EXTS[@]} -gt 0 ]] || EXTS=("${DEFAULT_EXT}")
   }
 
   populate_src_files() {
@@ -105,7 +108,7 @@ compile_bash_project() (
       no_ext_ptn+=${no_ext_ptn:+$'\n'}".*$(escape_sed_expr "${ext}")\$"
     done
 
-    declare src_files; src_files="$(find "${LH_PARAMS[SRC_DIR]}")" || return $?
+    declare src_files; src_files="$(find -- "$(lh_params get SRC_DIR)")" || return $?
     src_files="$(sort -n <<< "${src_files}" | grep -if <(cat <<< "${ext_ptn}"))" || return 0
     if [[ -n "${no_ext_ptn+x}" ]]; then
       src_files="$(grep -ivf <(cat <<< "${no_ext_ptn}") <<< "${src_files}" | grep '')" || return 0
@@ -115,11 +118,11 @@ compile_bash_project() (
   }
 
   main() {
-    # shellcheck disable=SC2015
+    init
     parse_params "${@}"
-    check_required_params
+    check_params
 
-    lh_params_flush_invalid >&2 && {
+    lh_params invalids >&2 && {
       echo "FATAL (${SELF})" >&2
       return 1
     }
@@ -132,23 +135,26 @@ compile_bash_project() (
       return
     }
 
-    echo "# ===== ${SELF}: compiling ${SRC_DIR} => ${DEST_DIR}" >&2
+    declare src_dir; src_dir="$(lh_params get SRC_DIR)"
+    declare dest_dir; dest_dir="$(lh_params get DEST_DIR)"
+
+    echo "# ===== ${SELF}: compiling ${src_dir} => ${dest_dir}" >&2
 
     declare suffix
     declare dest
     declare rc=0
     declare src; for src in "${SRC_FILES[@]}"; do
-      suffix="$(realpath -m --relative-to "${LH_PARAMS[SRC_DIR]}" -- "${src}")" || {
+      suffix="$(realpath -m --relative-to "${src_dir}" -- "${src}")" || {
         rc=1
         continue
       }
 
-      dest="${LH_PARAMS[DEST_DIR]}/${suffix}"
+      dest="${dest_dir}/${suffix}"
       printf -- '# COMPILING: %s => %s\n' "${src}" "${dest}"
       (
         set -o pipefail
         (
-          compile_bash_file -- "${src}" "${dest}" "${LH_PARAMS[SRC_DIR]}" 3>&2 2>&1 1>&3
+          compile_bash_file -- "${src}" "${dest}" "${src_dir}" 3>&2 2>&1 1>&3
         ) | sed -e 's/^/  /'
       ) 3>&2 2>&1 1>&3 && {
         printf -- '# OK: %s\n' "${src}"
@@ -172,75 +178,73 @@ compile_bash_project() (
 # .LH_SOURCED: {{ bin/compile-bash-file.sh }}
 # shellcheck disable=SC2317
 compile_bash_file() (
-  declare SELF="${FUNCNAME[0]}"
+  { # Service vars
+    declare -r SELF="${FUNCNAME[0]}"
 
-  # If not a file, default to ssh-gen.sh script name
-  declare THE_SCRIPT=compile-bash-file.sh
-  grep -q -m 1 -- '.' "${0}" 2>/dev/null && THE_SCRIPT="$(basename -- "${0}")"
-
-  declare LIBS_PATH
-
-  print_help_usage() {
-    echo "${THE_SCRIPT} [--] SRC_FILE DEST_FILE LIBS_PATH"
+    # If not a file, default to demo.sh script name
+    declare THE_SCRIPT=demo.sh
+    grep -q -m 1 -- '.' "${0}" 2>/dev/null && THE_SCRIPT="$(basename -- "${0}")"
   }
 
-  print_help() {
-    text_nice "
-      Compile bash script. Processing:
-      * Replace '# .LH_SOURCE:path/to/lib.sh' comment lines with content of the
-     ,  pointed libs, while path to the lib is relative to LIBS_PATH directory
-      * Everything after '# .LH_NOSOURCE' comment in the sourced files is ignored
-     ,  for sourcing
-      * Sourced code is wrapped with comment. To avoid wrapping use
-     ,  '# .LH_SOURCE_NW:path/to/lib.sh' comment
-      * Shebang from the sourced files are removed in the resulting file
-     ,
-      USAGE:
-      =====
-      $(print_help_usage)
-     ,
-      PARAMS:
-      ======
-      SRC_FILE    Source file
-      DEST_FILE   Compilation destination file
-      LIBS_PATH   Directory with libraries
-      --          End of options
-     ,
-      DEMO:
-      ====
-      # Review the demo project
-      cat ./src/lib/world.sh; echo '+++++'; \\
-      cat ./src/lib/hello.sh; echo '+++++'; \\
-      cat ./src/bin/script.sh
-      \`\`\`OUTPUT:
-      #!/usr/bin/env bash
-      print_world() { echo \"world\"; }
-      # .LH_NOSOURCE
-      print_world
-      +++++
-      #!/usr/bin/env bash
-     ,# .LH_SOURCE:lib/world.sh
-      print_hello_world() { echo \"Hello \$(print_world)\"; }
-      +++++
-      #!/usr/bin/env bash
-     ,# .LH_SOURCE:lib/hello.sh
-      print_hello_world
-      \`\`\`
-     ,
-      # Compile to stdout
-      ${THE_SCRIPT} ./src/bin/script.sh /dev/stdout ./src
-      \`\`\`OUTPUT (stderr ignored):
-      #!/usr/bin/env bash
-     ,# .LH_SOURCED: {{ lib/hello.sh }}
-     ,# .LH_SOURCED: {{ lib/world.sh }}
-      print_world() { echo \"world\"; }
-     ,# .LH_SOURCED: {{/ lib/world.sh }}
-      print_hello_world() { echo \"Hello \$(print_world)\"; }
-     ,# .LH_SOURCED: {{/ lib/hello.sh }}
-      print_hello_world
-      \`\`\`
-    "
-  }
+  print_usage() { echo "
+    ${THE_SCRIPT} [--] SRC_FILE DEST_FILE LIBS_PATH
+  "; }
+
+  print_help() { text_nice "
+    Compile bash script. Processing:
+    * Replace '# .LH_SOURCE:path/to/lib.sh' comment lines with content of the
+   ,  pointed libs, while path to the lib is relative to LIBS_PATH directory
+    * Everything after '# .LH_NOSOURCE' comment in the sourced files is ignored
+   ,  for sourcing
+    * Sourced code is wrapped with comment. To avoid wrapping use
+   ,  '# .LH_SOURCE_NW:path/to/lib.sh' comment
+    * Shebang from the sourced files are removed in the resulting file
+   ,
+    USAGE:
+    =====
+    $(print_usage)
+   ,
+    PARAMS:
+    ======
+    SRC_FILE    Source file
+    DEST_FILE   Compilation destination file
+    LIBS_PATH   Directory with libraries
+    --          End of options
+   ,
+    DEMO:
+    ====
+    # Review the demo project
+    cat ./src/lib/world.sh; echo '+++++'; \\
+    cat ./src/lib/hello.sh; echo '+++++'; \\
+    cat ./src/bin/script.sh
+    \`\`\`OUTPUT:
+    #!/usr/bin/env bash
+    print_world() { echo \"world\"; }
+    # .LH_NOSOURCE
+    print_world
+    +++++
+    #!/usr/bin/env bash
+    ,# .LH_SOURCE:lib/world.sh
+    print_hello_world() { echo \"Hello \$(print_world)\"; }
+    +++++
+    #!/usr/bin/env bash
+    ,# .LH_SOURCE:lib/hello.sh
+    print_hello_world
+    \`\`\`
+   ,
+    # Compile to stdout
+    ${THE_SCRIPT} ./src/bin/script.sh /dev/stdout ./src
+    \`\`\`OUTPUT (stderr ignored):
+    #!/usr/bin/env bash
+    ,# .LH_SOURCED: {{ lib/hello.sh }}
+    ,# .LH_SOURCED: {{ lib/world.sh }}
+    print_world() { echo \"world\"; }
+    ,# .LH_SOURCED: {{/ lib/world.sh }}
+    print_hello_world() { echo \"Hello \$(print_world)\"; }
+    ,# .LH_SOURCED: {{/ lib/hello.sh }}
+    print_hello_world
+    \`\`\`
+  "; }
 
   parse_params() {
     declare -a args
@@ -255,7 +259,7 @@ compile_bash_file() (
       case "${param}" in
         --            ) endopts=true ;;
         -\?|-h|--help ) print_help; exit ;;
-        --usage       ) print_help_usage | text_nice; exit ;;
+        --usage       ) print_usage | text_nice; exit ;;
         -*            ) lh_params_unsupported "${1}" ;;
         *             ) args+=("${1}") ;;
       esac
@@ -263,20 +267,25 @@ compile_bash_file() (
       shift
     done
 
-    [[ ${#args[@]} -gt 0 ]] && lh_param_set SRC_FILE "${args[0]}"
-    [[ ${#args[@]} -gt 1 ]] && lh_param_set DEST_FILE "${args[1]}"
-    [[ ${#args[@]} -gt 2 ]] && lh_param_set LIBS_PATH "$(sed -e 's/\/*$//' <<< "${args[2]}")"
-    [[ ${#args[@]} -lt 4 ]] || lh_params_unsupported "${args[@]:3}"
+    [[ ${#args[@]} -gt 0 ]] && lh_params set SRC_FILE "${args[0]}"
+    [[ ${#args[@]} -gt 1 ]] && lh_params set DEST_FILE "${args[1]}"
+    [[ ${#args[@]} -gt 2 ]] && lh_params set LIBS_PATH "$(sed -e 's/\/*$//' <<< "${args[2]}")"
+    [[ ${#args[@]} -lt 4 ]] || lh_params unsupported "${args[@]:3}"
   }
 
-  check_required_params() {
-    [[ -n "${LH_PARAMS[SRC_FILE]}" ]]   || lh_params_noval SRC_FILE
-    [[ -n "${LH_PARAMS[DEST_FILE]}" ]]  || lh_params_noval DEST_FILE
-    [[ -n "${LH_PARAMS[LIBS_PATH]}" ]]  || lh_params_noval LIBS_PATH
+  check_params() {
+    lh_params get SRC_FILE >/dev/null   || lh_params noval SRC_FILE
+    lh_params get DEST_FILE >/dev/null  || lh_params noval DEST_FILE
+    lh_params get LIBS_PATH >/dev/null  || lh_params noval LIBS_PATH
+
+    lh_params is-blank SRC_FILE   && lh_params errbag "SRC_FILE can't be blank"
+    lh_params is-blank DEST_FILE  && lh_params errbag "DEST_FILE can't be blank"
+    lh_params is-blank LIBS_PATH  && lh_params errbag "LIBS_PATH can't be blank"
   }
 
-  replace_callback() {
-    declare inc_file="${LH_PARAMS[LIBS_PATH]}/${1}"
+  replace_cbk() {
+    declare libs_path; libs_path="$(lh_params get LIBS_PATH)"
+    declare inc_file="${libs_path}/${1}"
 
     # The lib is already included
     printf -- '%s\n' "${INCLUDED_LIBS[@]}" \
@@ -286,7 +295,7 @@ compile_bash_file() (
     echo "# INC:${inc_file}" >&2
 
     declare file_path
-    file_path="$(realpath --relative-to "${LH_PARAMS[LIBS_PATH]}" -m -- "${inc_file}")"
+    file_path="$(realpath --relative-to "${libs_path}" -m -- "${inc_file}")"
 
     # shellcheck disable=SC2034
     REPLACEMENT="$(
@@ -309,35 +318,204 @@ compile_bash_file() (
   main() {
     # shellcheck disable=SC2015
     parse_params "${@}"
-    check_required_params
+    check_params
 
-    lh_params_flush_invalid >&2 && {
+    lh_params invalids >&2 && {
       echo "FATAL (${SELF})" >&2
       return 1
     }
 
-    declare dest_dir; dest_dir="$(dirname -- "${LH_PARAMS[DEST_FILE]}")"
     declare content; content="$( set -o pipefail
-      cat -- "${LH_PARAMS[SRC_FILE]}" \
-      | replace_marker '.LH_SOURCE:' replace_callback '#' \
-      | LH_NO_WRAP=true replace_marker '.LH_SOURCE_NW:' replace_callback '#' \
-      | LH_NO_WRAP=true replace_marker '.LH_SOURCE_NO_WRAP:' replace_callback '#'
+      cat -- "$(lh_params get SRC_FILE)" \
+      | replace_marker '.LH_SOURCE:' replace_cbk '#' \
+      | LH_NO_WRAP=true replace_marker '.LH_SOURCE_NW:' replace_cbk '#' \
+      | LH_NO_WRAP=true replace_marker '.LH_SOURCE_NO_WRAP:' replace_cbk '#'
     )" || return $?
+
+    declare src_file; src_file="$(lh_params get SRC_FILE)"
+    declare dest_file; dest_file="$(lh_params get DEST_FILE)"
+    declare dest_dir; dest_dir="$(dirname -- "$(lh_params get DEST_FILE)")"
 
     (set -x; mkdir -p -- "${dest_dir}") \
     && {
-      if [[ ! -e "${LH_PARAMS[DEST_FILE]}" ]] || [[ -f "${LH_PARAMS[DEST_FILE]}" ]]; then
-        # Copy the original fail to ensure same file attributes.
+      if [[ ! -e "$(lh_params get DEST_FILE)" ]] || [[ -f "$(lh_params get DEST_FILE)" ]]; then
+        # Copy the original file to ensure same file attributes.
         # Copy only when there is no LH_PARAMS[DEST_FILE] or it is a regular file
-        (set -x; cp -- "${LH_PARAMS[SRC_FILE]}" "${LH_PARAMS[DEST_FILE]}")
+        (set -x; cp -- "${src_file}" "${dest_file}")
       fi
     } \
-    && (set -x; cat <<< "${content}" > "${LH_PARAMS[DEST_FILE]}") \
+    && (
+      set -x; cat <<< "${content}" > "${dest_file}"
+    ) \
     || return $?
   }
 
   main "${@}"
 )
+# .LH_SOURCED: {{ lib/lh-params.sh }}
+lh_params() { lh_params_"${1//-/_}" "${@:2}"; }
+
+lh_params_reset() {
+  [[ "${FUNCNAME[1]}" != _lh_params_init ]] && { _lh_params_init "${@}"; return $?; }
+  declare vname vtype
+  for vname in "${!_lh_params_map[@]}"; do
+    unset "${vname}"
+    declare -"${vtype}"g "${vname}"
+  done
+}
+
+lh_params_set() {
+  [[ "${FUNCNAME[1]}" != _lh_params_init ]] && { _lh_params_init "${@}"; return $?; }
+  [[ -n "${2+x}" ]] || { lh_params_noval "${1}"; return 1; }
+  # shellcheck disable=SC2034
+  LH_PARAMS["${1}"]="${2}"
+}
+
+# lh_params_get NAME [DEFAULT]
+#
+# # Try to get $LH_PARAMS[NAME], fall back to invokation of lh_params_default_NAME,
+# # then fallback to $LH_PARAMS_DEFAULTS[NAME] and if doesn't exist RC 1
+# lh_params_get NAME
+#
+# # Try to get $LH_PARAMS[NAME], fall back to DEFAULT_VAL
+# lh_params_get NAME DEFAULT_VAL
+lh_params_get() {
+  [[ "${FUNCNAME[1]}" != _lh_params_init ]] && { _lh_params_init "${@}"; return $?; }
+  [[ -n "${LH_PARAMS[${1}]+x}" ]] && { cat <<< "${LH_PARAMS[${1}]}"; return; }
+  [[ -n "${2+x}" ]] && { cat <<< "${2}"; return; }
+  declare -F "lh_params_default_${1}" &>/dev/null && { "lh_params_default_${1}"; return; }
+  [[ -n "${LH_PARAMS_DEFAULTS[${1}]+x}" ]] && { cat <<< "${LH_PARAMS_DEFAULTS[${1}]}"; return; }
+  return 1
+}
+
+lh_params_is_blank() {
+  [[ "${FUNCNAME[1]}" != _lh_params_init ]] && { _lh_params_init "${@}"; return $?; }
+  [[ -n "${LH_PARAMS[${1}]+x}" ]] && [[ -z "${LH_PARAMS[${1}]:+x}" ]]
+}
+
+lh_params_noval() {
+  [[ "${FUNCNAME[1]}" != _lh_params_init ]] && { _lh_params_init "${@}"; return $?; }
+  # https://stackoverflow.com/a/13216833
+  declare -a issues=("${@/%/ requires a value}")
+  lh_params_errbag "${issues[@]}"
+}
+
+lh_params_unsupported() {
+  [[ "${FUNCNAME[1]}" != _lh_params_init ]] && { _lh_params_init "${@}"; return $?; }
+  # https://stackoverflow.com/a/13216833
+  declare -a issues=("${@/%/\' param is unsupported}")
+  lh_params_errbag "${issues[@]/#/\'}"
+}
+
+lh_params_errbag() {
+  [[ "${FUNCNAME[1]}" != _lh_params_init ]] && { _lh_params_init "${@}"; return $?; }
+  LH_PARAMS_ERRBAG+=("${@}")
+}
+
+# lh_params_defaults PARAM_NAME1='DEFAULT_VAL'...
+lh_params_defaults() {
+  [[ "${FUNCNAME[1]}" != _lh_params_init ]] && { _lh_params_init "${@}"; return $?; }
+  declare kv pname pval
+  for kv in "${@}"; do
+    kv="${kv}="
+    pname="${kv%%=*}"
+    pval="${kv#*=}"; pval="${pval::-1}"
+    LH_PARAMS_DEFAULTS["${pname}"]="${pval}"
+  done
+}
+
+lh_params_default_string() {
+  [[ "${FUNCNAME[1]}" != _lh_params_init ]] && { _lh_params_init "${@}"; return $?; }
+  cat <<< "${LH_PARAMS_DEFAULTS[${1}]}"
+}
+
+lh_params_ask_config() {
+  [[ "${FUNCNAME[1]}" != _lh_params_init ]] && { _lh_params_init "${@}"; return $?; }
+
+  declare pname ptext prev_comma=false
+  for ptext in "${@}"; do
+    [[ "${ptext}" == ',' ]] && { prev_comma=true; continue; }
+
+    ${prev_comma} || [[ -z "${pname}" ]] && {
+      pname="${ptext}"
+      LH_PARAMS_ASK_PARAMS+=("${pname}")
+      prev_comma=false
+      continue
+    }
+
+    LH_PARAMS_ASK["${pname}"]+="${LH_PARAMS_ASK["${pname}"]+$'\n'}${ptext}"
+  done
+}
+
+lh_params_ask() {
+  declare confirm pname ptext
+
+  [[ -n "${LH_PARAMS_ASK_EXCLUDE+x}" ]] && {
+    LH_PARAMS_ASK_EXCLUDE="$(
+      # shellcheck disable=SC2001
+      sed -e 's/^\s*//' -e 's/\s*$//' <<< "${LH_PARAMS_ASK_EXCLUDE}" \
+      | grep -v '^$'
+    )"
+  }
+
+  while ! [[ "${confirm:-n}" == y ]]; do
+    confirm=""
+
+    for pname in "${LH_PARAMS_ASK_PARAMS[@]}"; do
+      # Don't prompt for params in LH_PARAMS_ASK_EXCLUDE (text) list
+      grep -qFx -- "${pname}" <<< "${LH_PARAMS_ASK_EXCLUDE}" && continue
+
+      read  -erp "${LH_PARAMS_ASK[${pname}]}" \
+            -i "$(lh_params_get "${pname}")" "LH_PARAMS[${pname}]"
+    done
+
+    echo '============================' >&2
+
+    while [[ ! " y n " == *" ${confirm} "* ]]; do
+      read -rp "YES (y) for proceeding or NO (n) to repeat: " confirm
+      [[ "${confirm,,}" =~ ^(y|yes)$ ]] && confirm=y
+      [[ "${confirm,,}" =~ ^(n|no)$ ]] && confirm=n
+    done
+  done
+}
+
+lh_params_invalids() {
+  declare -i rc=1
+
+  [[ ${#LH_PARAMS_ERRBAG[@]} -lt 1 ]] || {
+    echo "Issues:"
+    printf -- '* %s\n' "${LH_PARAMS_ERRBAG[@]}"
+    rc=0
+  }
+
+  return ${rc}
+}
+
+_lh_params_init() {
+  declare -A _lh_params_map=(
+    [LH_PARAMS]=A
+    [LH_PARAMS_DEFAULTS]=A
+    [LH_PARAMS_ASK]=A
+    [LH_PARAMS_ASK_PARAMS]=a
+    [LH_PARAMS_ERRBAG]=a
+  )
+
+  # Ensure global variables
+  declare vname vtype
+  for vname in "${!_lh_params_map[@]}"; do
+    vtype="${_lh_params_map[${vname}]}"
+    [[ "$(declare -p "${vname}" 2>/dev/null)" == "declare -${vtype}"* ]] && continue
+
+    unset "${vname}"
+    declare -"${vtype}"g "${vname}"
+  done
+
+  [[ "${FUNCNAME[1]}" != lh_params_* ]] || {
+    unset vname vtype
+    "${FUNCNAME[1]}" "${@}"
+  }
+}
+# .LH_SOURCED: {{/ lib/lh-params.sh }}
 # .LH_SOURCED: {{ lib/text.sh }}
 # shellcheck disable=SC2001
 # shellcheck disable=SC2120
@@ -415,84 +593,6 @@ escape_double_quotes()  { declare str="${1-$(cat)}"; cat <<< "${str//\"/\"\\\"\"
 # .LH_SOURCED: {{/ lib/basic.sh }}
 
 # .LH_SOURCED: {{/ partial/replace-marker.sh }}
-# .LH_SOURCED: {{ base.ignore.sh }}
-# USAGE:
-#   declare -A LH_DEFAULTS=([PARAM_NAME]=VALUE)
-#   lh_params_apply_defaults
-# If LH_PARAMS[PARAM_NAME] is not set, it gets the value from LH_DEFAULTS
-lh_params_apply_defaults() {
-  [[ "$(declare -p LH_PARAMS 2>/dev/null)" == "declare -A"* ]] || declare -Ag LH_PARAMS
-  [[ "$(declare -p LH_DEFAULTS 2>/dev/null)" == "declare -A"* ]] || declare -Ag LH_DEFAULTS
-
-  declare p_name; for p_name in "${!LH_DEFAULTS[@]}"; do
-    [[ -n "${LH_PARAMS[${p_name}]+x}" ]] || LH_PARAMS["${p_name}"]="${LH_DEFAULTS[${p_name}]}"
-  done
-}
-
-lh_params_reset() {
-  unset LH_PARAMS LH_PARAMS_NOVAL
-  declare -Ag LH_PARAMS
-  declare -ag LH_PARAMS_NOVAL
-}
-
-# USAGE:
-#   lh_param_set PARAM_NAME VALUE
-# Produces global LH_PARAMS[PARAM_NAME]=VALUE.
-# When VALUE is not provided returns 1 and puts PARAM_NAME to LH_PARAMS_NOVAL global array
-lh_param_set() {
-  declare name="${1}"
-
-  [[ -n "${2+x}" ]] || { lh_params_noval "${name}"; return 1; }
-
-  [[ "$(declare -p LH_PARAMS 2>/dev/null)" == "declare -A"* ]] || declare -Ag LH_PARAMS
-  LH_PARAMS["${name}"]="${2}"
-}
-
-lh_params_noval() {
-  [[ "$(declare -p LH_PARAMS_NOVAL 2>/dev/null)" == "declare -a"* ]] || {
-    unset LH_PARAMS_NOVAL
-    declare -ag LH_PARAMS_NOVAL
-  }
-
-  [[ ${#} -gt 0 ]] && { LH_PARAMS_NOVAL+=("${@}"); return; }
-
-  [[ ${#LH_PARAMS_NOVAL[@]} -gt 0 ]] || return 1
-  printf -- '%s\n' "${LH_PARAMS_NOVAL[@]}"
-}
-
-# shellcheck disable=SC2120
-lh_params_unsupported() {
-  [[ "$(declare -p LH_PARAMS_UNSUPPORTED 2>/dev/null)" == "declare -a"* ]] || {
-    unset LH_PARAMS_UNSUPPORTED
-    declare -ag LH_PARAMS_UNSUPPORTED
-  }
-
-  [[ ${#} -gt 0 ]] && { LH_PARAMS_UNSUPPORTED+=("${@}"); return; }
-
-  [[ ${#LH_PARAMS_UNSUPPORTED[@]} -gt 0 ]] || return 1
-  printf -- '%s\n' "${LH_PARAMS_UNSUPPORTED[@]}"
-}
-
-lh_params_flush_invalid() {
-  declare -i rc=1
-
-  # shellcheck disable=SC2119
-  declare unsup; unsup="$(lh_params_unsupported)" && {
-    echo "Unsupported params:"
-    printf -- '%s\n' "${unsup}" | sed -e 's/^/* /'
-    rc=0
-  }
-
-  # shellcheck disable=SC2119
-  declare noval; noval="$(lh_params_noval)" && {
-    echo "Values required for:"
-    printf -- '%s\n' "${noval}" | sed -e 's/^/* /'
-    rc=0
-  }
-
-  return ${rc}
-}
-# .LH_SOURCED: {{/ base.ignore.sh }}
 
 # .LH_SOURCED: {{/ bin/compile-bash-file.sh }}
 

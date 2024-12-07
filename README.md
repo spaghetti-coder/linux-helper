@@ -87,6 +87,52 @@
   
 </details>
 
+<a id="bin/demo.sh"></a>
+<details><summary>bin/demo.sh</summary>
+
+  [Link to the section](#bin/demo.sh)
+  
+  **AD HOC:**
+  ~~~sh
+  # Review and change input params (after "bash -s --")
+  # VERSION can be changed to any treeish
+  (
+    VERSION='master'
+    curl -V &>/dev/null && dl_tool=(curl -sL) || dl_tool=(wget -qO-)
+    set -x; "${dl_tool[@]}" "https://raw.githubusercontent.com/spaghetti-coder/linux-helper/${VERSION:-master}/dist/bin/demo.sh" \
+    || "${dl_tool[@]}" "https://bitbucket.org/kvedenskii/linux-scripts/raw/${VERSION:-master}/dist/bin/demo.sh"
+  ) | bash -s -- \
+    [--ask] [--age AGE='0'] [--domain DOMAIN="$(hostname -f)"] [--] NAME
+  ~~~
+  
+  
+  **MAN:**
+  ~~~
+  Just a demo boilerplate project to get user info.
+  
+  USAGE:
+  =====
+  demo.sh [--ask] [--age AGE='0'] [--domain DOMAIN="$(hostname -f)"] [--] NAME
+  
+  PARAMS:
+  ======
+  NAME    Person's name
+  --      End of options
+  --ask     Provoke a prompt for all params
+  --age     Person's age
+  --domain  Person's domain
+  
+  DEMO:
+  ====
+  # With all defaults
+  demo.sh Spaghetti
+  
+  # Provie info interactively
+  demo.sh --ask
+  ~~~
+  
+</details>
+
 <a id="bin/ssh-gen.sh"></a>
 <details><summary>bin/ssh-gen.sh</summary>
 
@@ -102,10 +148,9 @@
     set -x; "${dl_tool[@]}" "https://raw.githubusercontent.com/spaghetti-coder/linux-helper/${VERSION:-master}/dist/bin/ssh-gen.sh" \
     || "${dl_tool[@]}" "https://bitbucket.org/kvedenskii/linux-scripts/raw/${VERSION:-master}/dist/bin/ssh-gen.sh"
   ) | bash -s -- \
-    [--port PORT='22'] [--host HOST=HOSTNAME] \
+    [--ask] [--host HOST=HOSTNAME] [--port PORT='22'] \
     [--comment COMMENT="$(id -un)@$(hostname -f)"] [--dirname DIRNAME=HOSTNAME] \
-    [--filename FILENAME=USER] [--dest-dir DEST_DIR="${HOME}/.ssh/"HOSTNAME] \
-    [--ask] [--] USER HOSTNAME
+    [--filename FILENAME=USER] [--dest-dir DEST_DIR] [--] HOSTNAME USER
   ~~~
   
   
@@ -115,37 +160,36 @@
   
   USAGE:
   =====
-  ssh-gen.sh [--port PORT='22'] [--host HOST=HOSTNAME] \
+  ssh-gen.sh [--ask] [--host HOST=HOSTNAME] [--port PORT='22'] \
     [--comment COMMENT="$(id -un)@$(hostname -f)"] [--dirname DIRNAME=HOSTNAME] \
-    [--filename FILENAME=USER] [--dest-dir DEST_DIR="${HOME}/.ssh/"HOSTNAME] \
-    [--ask] [--] USER HOSTNAME
+    [--filename FILENAME=USER] [--dest-dir DEST_DIR] [--] HOSTNAME USER
   
   PARAMS:
   ======
+  HOSTNAME  The actual SSH host. With values like '%h' (the target hostname)
+            must provide --host and most likely --dirname
   USER      SSH user
-  HOSTNAME  The actual SSH host. When values like '%h' (the target hostname)
-            used, must provide --host and most likely --dirname
   --        End of options
-  --port    SSH port
+  --ask     Provoke a prompt for all params
   --host    SSH host match pattern
+  --port    SSH port
   --comment   Certificate comment
   --dirname   Destination directory name
-  --filename  Destination file name
+  --filename  SSH identity key file name
   --dest-dir  Custom destination directory. In case the option is provided
               --dirname option is ignored and Include entry won't be created in
               ~/.ssh/config file. The directory will be autocreated
-  --ask       Provoke a prompt for all params
   
   DEMO:
   ====
-  # Generate with all defaults to PK file ~/.ssh/serv.com/user
-  ssh-gen.sh user serv.com
+  # Generate with all defaults to PK file ~/.ssh/10.0.0.69/user
+  ssh-gen.sh 10.0.0.69 user
   
-  # Generate to ~/.ssh/_.serv.com/bar instead of ~/.ssh/10.0.0.69/foo
-  ssh-gen.sh --host 'serv.com *.serv.com' --dirname '_.serv.com' \
-    --filename 'bar' --comment Zoo -- foo 10.0.0.69
+  # Generate to ~/.ssh/_.serv.com/bar instead of ~/.ssh/%h/foo
+  ssh-gen.sh --host 'serv.com *.serv.com' --comment Zoo --dirname '_.serv.com' \
+    --filename 'bar' -- '%h' foo
   
-  # Generate interactively to ~/my/certs/foo (will be prompted for params)
+  # Generate interactively to ~/my/certs/foo (will be prompted for params).
   ssh-gen.sh --ask --dest-dir ~/my/certs/foo
   ~~~
   
@@ -173,9 +217,7 @@
   
   **MAN:**
   ~~~
-  Shortcut for compile-bash-file.sh.
-  
-  Compile bash project. Processing:
+  Shortcut for compile-bash-file.sh to compile complete bash project. Processing:
   * Compile each file under SRC_DIR to same path of DEST_DIR
   * Replace '# .LH_SOURCE:path/to/lib.sh' comment lines with content of the
     pointed libs, while path to the lib is relative to SRC_DIR directory
@@ -223,25 +265,27 @@
     set -x; "${dl_tool[@]}" "https://raw.githubusercontent.com/spaghetti-coder/linux-helper/${VERSION:-master}/dist/short/ssh-gen-github.sh" \
     || "${dl_tool[@]}" "https://bitbucket.org/kvedenskii/linux-scripts/raw/${VERSION:-master}/dist/short/ssh-gen-github.sh"
   ) | bash -s -- \
-    [--host HOST='github.com'] \
+    [--ask] [--host HOST='github.com'] \
     [--comment COMMENT="$(id -un)@$(hostname -f)"] [--] [ACCOUNT='git']
   ~~~
   
   
   **MAN:**
   ~~~
-  Generate private and public key pair and configure ~/.ssh/config file to
-  use them. It is a github centric shortcut of ssh-gen.sh tool.
+  github.com centric shortcut of ssh-gen.sh tool. Generate private and public key
+  pair and configure ~/.ssh/config file to use them.
   
   USAGE:
   =====
-  ssh-gen-github.sh [--host HOST='github.com'] \
+  ssh-gen-github.sh [--ask] [--host HOST='github.com'] \
     [--comment COMMENT="$(id -un)@$(hostname -f)"] [--] [ACCOUNT='git']
   
   PARAMS:
   ======
-  ACCOUNT   Github account, only used to form cert filename
+  ACCOUNT   Github account name, only used to make cert filename, for SSH
+            connection 'git' user will be used.
   --        End of options
+  --ask     Provoke a prompt for all params
   --host    SSH host match pattern
   --comment Certificate comment
   
@@ -252,6 +296,58 @@
   
   # Generate to ~/.ssh/github.com/foo
   ssh-gen-github.sh foo --host github.com-foo --comment Zoo
+  ~~~
+  
+</details>
+
+<a id="short/ssh-gen-vc.sh"></a>
+<details><summary>short/ssh-gen-vc.sh</summary>
+
+  [Link to the section](#short/ssh-gen-vc.sh)
+  
+  **AD HOC:**
+  ~~~sh
+  # Review and change input params (after "bash -s --")
+  # VERSION can be changed to any treeish
+  (
+    VERSION='master'
+    curl -V &>/dev/null && dl_tool=(curl -sL) || dl_tool=(wget -qO-)
+    set -x; "${dl_tool[@]}" "https://raw.githubusercontent.com/spaghetti-coder/linux-helper/${VERSION:-master}/dist/short/ssh-gen-vc.sh" \
+    || "${dl_tool[@]}" "https://bitbucket.org/kvedenskii/linux-scripts/raw/${VERSION:-master}/dist/short/ssh-gen-vc.sh"
+  ) | bash -s -- \
+    [--ask] [--host HOST=HOSTNAME] [--port PORT='22'] \
+    [--comment COMMENT="$(id -un)@$(hostname -f)"] [--] HOSTNAME [ACCOUNT=git]
+  ~~~
+  
+  
+  **MAN:**
+  ~~~
+  Generic version control system centric shortcut of ssh-gen.sh tool. Generate
+  private and public key pair and configure ~/.ssh/config file to use them.
+  
+  USAGE:
+  =====
+  ssh-gen-vc.sh [--ask] [--host HOST=HOSTNAME] [--port PORT='22'] \
+    [--comment COMMENT="$(id -un)@$(hostname -f)"] [--] HOSTNAME [ACCOUNT=git]
+  
+  PARAMS:
+  ======
+  HOSTNAME  VC system hostname
+  ACCOUNT   VC system account name, only used to make cert filename, for SSH
+            connection 'git' user will be used.
+  --        End of options
+  --ask     Provoke a prompt for all params
+  --host    SSH host match pattern
+  --port    SSH port
+  --comment Certificate comment
+  
+  DEMO:
+  ====
+  # Generate with all defaults to PK file ~/.ssh/github.com/git
+  ssh-gen-vc.sh github.com
+  
+  # Generate to ~/.ssh/github.com/bar with custom hostname and comment
+  ssh-gen-vc.sh github.com bar --host github.com-bar --comment Zoo
   ~~~
   
 </details>
@@ -305,10 +401,11 @@
   PARAMS:
   ======
   CONFD   Confd directory to store tmux custom configurations
+  --      End of options
   
   DEMO:
   ====
-  # Generate with all defaults to ~/.tmux/default.conf
+  # Generate with all defaults to "${HOME}/.tmux/default.conf"
   tmux-default.sh
   
   # Generate to /etc/tmux/default.conf. Requires sudo for non-root user
@@ -367,10 +464,11 @@
   PARAMS:
   ======
   CONFD   Confd directory to store tmux custom configurations
+  --      End of options
   
   DEMO:
   ====
-  # Generate with all defaults to ~/.tmux/{appendix,plugins}.conf
+  # Generate with all defaults to "${HOME}/.tmux"/{appendix,plugins}.conf
   tmux-plugins.sh
   
   # Generate to /etc/tmux/{appendix,plugins}.conf. Requires sudo for non-root user

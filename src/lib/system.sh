@@ -13,4 +13,10 @@ alias_home_in_path() {
   sed -e 's/^'"${home_rex}"'/~/' <<< "${path}"
 }
 
+is_port_valid() {
+  grep -qx -- '[0-9]\+' <<< "${1}" \
+  && [[ "${1}" -ge 0 ]] \
+  && [[ "${1}" -le 65535 ]]
+}
+
 # .LH_SOURCE:lib/basic.sh

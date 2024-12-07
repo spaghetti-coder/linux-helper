@@ -12,6 +12,12 @@ alias_home_in_path() {
   # shellcheck disable=SC2001
   sed -e 's/^'"${home_rex}"'/~/' <<< "${path}"
 }
+
+is_port_valid() {
+  grep -qx -- '[0-9]\+' <<< "${1}" \
+  && [[ "${1}" -ge 0 ]] \
+  && [[ "${1}" -le 65535 ]]
+}
 # .LH_SOURCED: {{ lib/basic.sh }}
 # https://stackoverflow.com/a/2705678
 escape_sed_expr()  { sed -e 's/[]\/$*.^[]/\\&/g' <<< "${1-$(cat)}"; }
