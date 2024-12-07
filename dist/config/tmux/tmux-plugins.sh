@@ -94,6 +94,12 @@ alias_home_in_path() {
   # shellcheck disable=SC2001
   sed -e 's/^'"${home_rex}"'/~/' <<< "${path}"
 }
+
+is_port_valid() {
+  grep -qx -- '[0-9]\+' <<< "${1}" \
+  && [[ "${1}" -ge 0 ]] \
+  && [[ "${1}" -le 65535 ]]
+}
 # .LH_SOURCED: {{/ lib/system.sh }}
 # .LH_SOURCED: {{ lib/text.sh }}
 # shellcheck disable=SC2001
