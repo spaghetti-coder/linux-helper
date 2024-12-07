@@ -1,8 +1,5 @@
 #!/usr/bin/env bash
 
-# .LH_SOURCE:lib/text.sh
-# .LH_SOURCE:base.ignore.sh
-
 class() (
   declare SELF="${FUNCNAME[0]}"
 
@@ -124,6 +121,9 @@ class() (
 
   main "${@}"
 )
+
+# .LH_SOURCE:lib/text.sh
+# .LH_SOURCE:base.ignore.sh
 
 # .LH_NOSOURCE
 

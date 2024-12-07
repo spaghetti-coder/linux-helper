@@ -1,101 +1,85 @@
 #!/usr/bin/env bash
+
+ssh_gen_github() (
+  # If not a file, default to ssh-gen.sh script name
+  declare THE_SCRIPT=ssh-gen-github.sh
+  grep -q -m 1 -- '.' "${0}" 2>/dev/null && THE_SCRIPT="$(basename -- "${0}")"
+
+  declare -A DEFAULTS=(
+    [account]=git
+    [host]=github.com
+  )
+
+  declare -a UPSTREAM_PARAMS=("${DEFAULTS[account]}" "${DEFAULTS[host]}")
+
+  print_help_usage() {
+    echo "
+      ${THE_SCRIPT} [--host HOST='${DEFAULTS[host]}'] \\
+     ,  [--comment COMMENT=\"\$(id -un)@\$(hostname -f)\"] [--] [ACCOUNT='${DEFAULTS[account]}']
+    "
+  }
+
+  print_help() {
+    declare -r ACCOUNT=foo
+
+    text_nice "
+      Generate private and public key pair and configure ~/.ssh/config file to
+      use them. It is a github centric shortcut of ssh-gen.sh tool.
+     ,
+      USAGE:
+      =====
+      $(print_help_usage)
+     ,
+      PARAMS:
+      ======
+      ACCOUNT   Github account, only used to form cert filename
+      --        End of options
+      --host    SSH host match pattern
+      --comment Certificate comment
+     ,
+      DEMO:
+      ====
+      # Generate with all defaults to PK file ~/.ssh/${DEFAULTS[host]}/${DEFAULTS[account]}
+      ${THE_SCRIPT}
+     ,
+      # Generate to ~/.ssh/${DEFAULTS[host]}/${ACCOUNT}
+      ${THE_SCRIPT} ${ACCOUNT} --host github.com-${ACCOUNT} --comment Zoo
+    "
+  }
+
+  parse_params() {
+    declare -a args
+
+    declare endopts=false
+    declare param
+    while [[ ${#} -gt 0 ]]; do
+      ${endopts} && param='*' || param="${1}"
+
+      case "${param}" in
+        --            ) endopts=true ;;
+        -\?|-h|--help ) print_help; exit ;;
+        --usage       ) print_help_usage | text_nice; exit ;;
+        --host        ) UPSTREAM_PARAMS+=(--host "${2}"); shift ;;
+        --comment     ) UPSTREAM_PARAMS+=(--comment "${2}"); shift ;;
+        *             ) args+=("${1}") ;;
+      esac
+
+      shift
+    done
+
+    [[ ${#args[@]} -gt 0 ]] && UPSTREAM_PARAMS+=(--filename "${args[0]}")
+    [[ ${#args[@]} -lt 2 ]] || UPSTREAM_PARAMS+=(-- "${args[@]:1}")
+  }
+
+  main() {
+    parse_params "${@}"
+
+    ssh_gen "${UPSTREAM_PARAMS[@]}"
+  }
+
+  main "${@}"
+)
 # .LH_SOURCED: {{ bin/ssh-gen.sh }}
-# .LH_SOURCED: {{ lib/text.sh }}
-# shellcheck disable=SC2001
-# shellcheck disable=SC2120
-text_ltrim() { sed -e 's/^\s\+//' <<< "${1-$(cat)}"; }
-text_rtrim() { sed -e 's/\s\+$//' <<< "${1-$(cat)}"; }
-text_trim() { text_ltrim <<< "${1-$(cat)}" | text_rtrim; }
-text_rmblank() { grep -v '^\s*$' <<< "${1-$(cat)}"; return 0; }
-text_nice() { text_trim <<< "${1-$(cat)}" | text_rmblank | sed -e 's/^,//'; }
-# .LH_SOURCED: {{/ lib/text.sh }}
-# .LH_SOURCED: {{ lib/basic.sh }}
-# https://stackoverflow.com/a/2705678
-escape_sed_expr()  { sed -e 's/[]\/$*.^[]/\\&/g' <<< "${1-$(cat)}"; }
-escape_sed_repl()  { sed -e 's/[\/&]/\\&/g' <<< "${1-$(cat)}"; }
-
-escape_single_quotes()  { declare str="${1-$(cat)}"; cat <<< "${str//\'/\'\\\'\'}"; }
-escape_double_quotes()  { declare str="${1-$(cat)}"; cat <<< "${str//\"/\"\\\"\"}"; }
-# .LH_SOURCED: {{/ lib/basic.sh }}
-# .LH_SOURCED: {{ base.ignore.sh }}
-# USAGE:
-#   declare -A LH_DEFAULTS=([PARAM_NAME]=VALUE)
-#   lh_params_apply_defaults
-# If LH_PARAMS[PARAM_NAME] is not set, it gets the value from LH_DEFAULTS
-lh_params_apply_defaults() {
-  [[ "$(declare -p LH_PARAMS 2>/dev/null)" == "declare -A"* ]] || declare -Ag LH_PARAMS
-  [[ "$(declare -p LH_DEFAULTS 2>/dev/null)" == "declare -A"* ]] || declare -Ag LH_DEFAULTS
-
-  declare p_name; for p_name in "${!LH_DEFAULTS[@]}"; do
-    [[ -n "${LH_PARAMS[${p_name}]+x}" ]] || LH_PARAMS["${p_name}"]="${LH_DEFAULTS[${p_name}]}"
-  done
-}
-
-lh_params_reset() {
-  unset LH_PARAMS LH_PARAMS_NOVAL
-  declare -Ag LH_PARAMS
-  declare -ag LH_PARAMS_NOVAL
-}
-
-# USAGE:
-#   lh_param_set PARAM_NAME VALUE
-# Produces global LH_PARAMS[PARAM_NAME]=VALUE.
-# When VALUE is not provided returns 1 and puts PARAM_NAME to LH_PARAMS_NOVAL global array
-lh_param_set() {
-  declare name="${1}"
-
-  [[ -n "${2+x}" ]] || { lh_params_noval "${name}"; return 1; }
-
-  [[ "$(declare -p LH_PARAMS 2>/dev/null)" == "declare -A"* ]] || declare -Ag LH_PARAMS
-  LH_PARAMS["${name}"]="${2}"
-}
-
-lh_params_noval() {
-  [[ "$(declare -p LH_PARAMS_NOVAL 2>/dev/null)" == "declare -a"* ]] || {
-    unset LH_PARAMS_NOVAL
-    declare -ag LH_PARAMS_NOVAL
-  }
-
-  [[ ${#} -gt 0 ]] && { LH_PARAMS_NOVAL+=("${@}"); return; }
-
-  [[ ${#LH_PARAMS_NOVAL[@]} -gt 0 ]] || return 1
-  printf -- '%s\n' "${LH_PARAMS_NOVAL[@]}"
-}
-
-# shellcheck disable=SC2120
-lh_params_unsupported() {
-  [[ "$(declare -p LH_PARAMS_UNSUPPORTED 2>/dev/null)" == "declare -a"* ]] || {
-    unset LH_PARAMS_UNSUPPORTED
-    declare -ag LH_PARAMS_UNSUPPORTED
-  }
-
-  [[ ${#} -gt 0 ]] && { LH_PARAMS_UNSUPPORTED+=("${@}"); return; }
-
-  [[ ${#LH_PARAMS_UNSUPPORTED[@]} -gt 0 ]] || return 1
-  printf -- '%s\n' "${LH_PARAMS_UNSUPPORTED[@]}"
-}
-
-lh_params_flush_invalid() {
-  declare -i rc=1
-
-  # shellcheck disable=SC2119
-  declare unsup; unsup="$(lh_params_unsupported)" && {
-    echo "Unsupported params:"
-    printf -- '%s\n' "${unsup}" | sed -e 's/^/* /'
-    rc=0
-  }
-
-  # shellcheck disable=SC2119
-  declare noval; noval="$(lh_params_noval)" && {
-    echo "Values required for:"
-    printf -- '%s\n' "${noval}" | sed -e 's/^/* /'
-    rc=0
-  }
-
-  return ${rc}
-}
-# .LH_SOURCED: {{/ base.ignore.sh }}
-
 ssh_gen() (
   declare SELF="${FUNCNAME[0]}"
 
@@ -403,88 +387,103 @@ ssh_gen() (
 
   main "${@}"
 )
+# .LH_SOURCED: {{ lib/text.sh }}
+# shellcheck disable=SC2001
+# shellcheck disable=SC2120
+text_ltrim() { sed -e 's/^\s\+//' <<< "${1-$(cat)}"; }
+text_rtrim() { sed -e 's/\s\+$//' <<< "${1-$(cat)}"; }
+text_trim() { text_ltrim <<< "${1-$(cat)}" | text_rtrim; }
+text_rmblank() { grep -v '^\s*$' <<< "${1-$(cat)}"; return 0; }
+text_nice() { text_trim <<< "${1-$(cat)}" | text_rmblank | sed -e 's/^,//'; }
+# .LH_SOURCED: {{/ lib/text.sh }}
+# .LH_SOURCED: {{ lib/basic.sh }}
+# https://stackoverflow.com/a/2705678
+escape_sed_expr()  { sed -e 's/[]\/$*.^[]/\\&/g' <<< "${1-$(cat)}"; }
+escape_sed_repl()  { sed -e 's/[\/&]/\\&/g' <<< "${1-$(cat)}"; }
+
+escape_single_quotes()  { declare str="${1-$(cat)}"; cat <<< "${str//\'/\'\\\'\'}"; }
+escape_double_quotes()  { declare str="${1-$(cat)}"; cat <<< "${str//\"/\"\\\"\"}"; }
+# .LH_SOURCED: {{/ lib/basic.sh }}
+# .LH_SOURCED: {{ base.ignore.sh }}
+# USAGE:
+#   declare -A LH_DEFAULTS=([PARAM_NAME]=VALUE)
+#   lh_params_apply_defaults
+# If LH_PARAMS[PARAM_NAME] is not set, it gets the value from LH_DEFAULTS
+lh_params_apply_defaults() {
+  [[ "$(declare -p LH_PARAMS 2>/dev/null)" == "declare -A"* ]] || declare -Ag LH_PARAMS
+  [[ "$(declare -p LH_DEFAULTS 2>/dev/null)" == "declare -A"* ]] || declare -Ag LH_DEFAULTS
+
+  declare p_name; for p_name in "${!LH_DEFAULTS[@]}"; do
+    [[ -n "${LH_PARAMS[${p_name}]+x}" ]] || LH_PARAMS["${p_name}"]="${LH_DEFAULTS[${p_name}]}"
+  done
+}
+
+lh_params_reset() {
+  unset LH_PARAMS LH_PARAMS_NOVAL
+  declare -Ag LH_PARAMS
+  declare -ag LH_PARAMS_NOVAL
+}
+
+# USAGE:
+#   lh_param_set PARAM_NAME VALUE
+# Produces global LH_PARAMS[PARAM_NAME]=VALUE.
+# When VALUE is not provided returns 1 and puts PARAM_NAME to LH_PARAMS_NOVAL global array
+lh_param_set() {
+  declare name="${1}"
+
+  [[ -n "${2+x}" ]] || { lh_params_noval "${name}"; return 1; }
+
+  [[ "$(declare -p LH_PARAMS 2>/dev/null)" == "declare -A"* ]] || declare -Ag LH_PARAMS
+  LH_PARAMS["${name}"]="${2}"
+}
+
+lh_params_noval() {
+  [[ "$(declare -p LH_PARAMS_NOVAL 2>/dev/null)" == "declare -a"* ]] || {
+    unset LH_PARAMS_NOVAL
+    declare -ag LH_PARAMS_NOVAL
+  }
+
+  [[ ${#} -gt 0 ]] && { LH_PARAMS_NOVAL+=("${@}"); return; }
+
+  [[ ${#LH_PARAMS_NOVAL[@]} -gt 0 ]] || return 1
+  printf -- '%s\n' "${LH_PARAMS_NOVAL[@]}"
+}
+
+# shellcheck disable=SC2120
+lh_params_unsupported() {
+  [[ "$(declare -p LH_PARAMS_UNSUPPORTED 2>/dev/null)" == "declare -a"* ]] || {
+    unset LH_PARAMS_UNSUPPORTED
+    declare -ag LH_PARAMS_UNSUPPORTED
+  }
+
+  [[ ${#} -gt 0 ]] && { LH_PARAMS_UNSUPPORTED+=("${@}"); return; }
+
+  [[ ${#LH_PARAMS_UNSUPPORTED[@]} -gt 0 ]] || return 1
+  printf -- '%s\n' "${LH_PARAMS_UNSUPPORTED[@]}"
+}
+
+lh_params_flush_invalid() {
+  declare -i rc=1
+
+  # shellcheck disable=SC2119
+  declare unsup; unsup="$(lh_params_unsupported)" && {
+    echo "Unsupported params:"
+    printf -- '%s\n' "${unsup}" | sed -e 's/^/* /'
+    rc=0
+  }
+
+  # shellcheck disable=SC2119
+  declare noval; noval="$(lh_params_noval)" && {
+    echo "Values required for:"
+    printf -- '%s\n' "${noval}" | sed -e 's/^/* /'
+    rc=0
+  }
+
+  return ${rc}
+}
+# .LH_SOURCED: {{/ base.ignore.sh }}
 
 # .LH_SOURCED: {{/ bin/ssh-gen.sh }}
-
-ssh_gen_github() (
-  # If not a file, default to ssh-gen.sh script name
-  declare THE_SCRIPT=ssh-gen-github.sh
-  grep -q -m 1 -- '.' "${0}" 2>/dev/null && THE_SCRIPT="$(basename -- "${0}")"
-
-  declare -A DEFAULTS=(
-    [account]=git
-    [host]=github.com
-  )
-
-  declare -a UPSTREAM_PARAMS=("${DEFAULTS[account]}" "${DEFAULTS[host]}")
-
-  print_help_usage() {
-    echo "
-      ${THE_SCRIPT} [--host HOST='${DEFAULTS[host]}'] \\
-     ,  [--comment COMMENT=\"\$(id -un)@\$(hostname -f)\"] [--] [ACCOUNT='${DEFAULTS[account]}']
-    "
-  }
-
-  print_help() {
-    declare -r ACCOUNT=foo
-
-    text_nice "
-      Generate private and public key pair and configure ~/.ssh/config file to
-      use them. It is a github centric shortcut of ssh-gen.sh tool.
-     ,
-      USAGE:
-      =====
-      $(print_help_usage)
-     ,
-      PARAMS:
-      ======
-      ACCOUNT   Github account, only used to form cert filename
-      --        End of options
-      --host    SSH host match pattern
-      --comment Certificate comment
-     ,
-      DEMO:
-      ====
-      # Generate with all defaults to PK file ~/.ssh/${DEFAULTS[host]}/${DEFAULTS[account]}
-      ${THE_SCRIPT}
-     ,
-      # Generate to ~/.ssh/${DEFAULTS[host]}/${ACCOUNT}
-      ${THE_SCRIPT} ${ACCOUNT} --host github.com-${ACCOUNT} --comment Zoo
-    "
-  }
-
-  parse_params() {
-    declare -a args
-
-    declare endopts=false
-    declare param
-    while [[ ${#} -gt 0 ]]; do
-      ${endopts} && param='*' || param="${1}"
-
-      case "${param}" in
-        --            ) endopts=true ;;
-        -\?|-h|--help ) print_help; exit ;;
-        --usage       ) print_help_usage | text_nice; exit ;;
-        --host        ) UPSTREAM_PARAMS+=(--host "${2}"); shift ;;
-        --comment     ) UPSTREAM_PARAMS+=(--comment "${2}"); shift ;;
-        *             ) args+=("${1}") ;;
-      esac
-
-      shift
-    done
-
-    [[ ${#args[@]} -gt 0 ]] && UPSTREAM_PARAMS+=(--filename "${args[0]}")
-    [[ ${#args[@]} -lt 2 ]] || UPSTREAM_PARAMS+=(-- "${args[@]:1}")
-  }
-
-  main() {
-    parse_params "${@}"
-
-    ssh_gen "${UPSTREAM_PARAMS[@]}"
-  }
-
-  main "${@}"
-)
 
 # .LH_NOSOURCE
 

@@ -1,8 +1,5 @@
 #!/usr/bin/env bash
 
-# .LH_SOURCE:bin/ssh-gen.sh
-# .LH_SOURCE:lib/text.sh
-
 ssh_gen_github() (
   # If not a file, default to ssh-gen.sh script name
   declare THE_SCRIPT=ssh-gen-github.sh
@@ -82,6 +79,9 @@ ssh_gen_github() (
 
   main "${@}"
 )
+
+# .LH_SOURCE:bin/ssh-gen.sh
+# .LH_SOURCE:lib/text.sh
 
 # .LH_NOSOURCE
 

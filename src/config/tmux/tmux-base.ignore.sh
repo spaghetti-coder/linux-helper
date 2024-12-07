@@ -1,9 +1,5 @@
 #!/usr/bin/env bash
 
-# .LH_SOURCE:lib/system.sh
-# .LH_SOURCE:lib/text.sh
-# .LH_SOURCE:base.ignore.sh
-
 config_tmux_base() {
   declare SELF="${FUNCNAME[0]}"
 
@@ -77,3 +73,7 @@ config_tmux_append_source_line() (
     set -x; umask 0077; "${tee_cmd[@]}" >/dev/null
   )
 )
+
+# .LH_SOURCE:lib/system.sh
+# .LH_SOURCE:lib/text.sh
+# .LH_SOURCE:base.ignore.sh

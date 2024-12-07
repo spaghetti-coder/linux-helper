@@ -1,160 +1,4 @@
 #!/usr/bin/env bash
-# .LH_SOURCED: {{ lib/text.sh }}
-# shellcheck disable=SC2001
-# shellcheck disable=SC2120
-text_ltrim() { sed -e 's/^\s\+//' <<< "${1-$(cat)}"; }
-text_rtrim() { sed -e 's/\s\+$//' <<< "${1-$(cat)}"; }
-text_trim() { text_ltrim <<< "${1-$(cat)}" | text_rtrim; }
-text_rmblank() { grep -v '^\s*$' <<< "${1-$(cat)}"; return 0; }
-text_nice() { text_trim <<< "${1-$(cat)}" | text_rmblank | sed -e 's/^,//'; }
-# .LH_SOURCED: {{/ lib/text.sh }}
-# .LH_SOURCED: {{ partial/replace-marker.sh }}
-# .LH_SOURCED: {{ lib/basic.sh }}
-# https://stackoverflow.com/a/2705678
-escape_sed_expr()  { sed -e 's/[]\/$*.^[]/\\&/g' <<< "${1-$(cat)}"; }
-escape_sed_repl()  { sed -e 's/[\/&]/\\&/g' <<< "${1-$(cat)}"; }
-
-escape_single_quotes()  { declare str="${1-$(cat)}"; cat <<< "${str//\'/\'\\\'\'}"; }
-escape_double_quotes()  { declare str="${1-$(cat)}"; cat <<< "${str//\"/\"\\\"\"}"; }
-# .LH_SOURCED: {{/ lib/basic.sh }}
-
-# cat FILE | get_marker_lines MARKER REPLACE_CBK [COMMENT_PREFIX] [COMMENT_SUFFIX]
-replace_marker() {
-  declare marker="${1}" \
-          replace_cbk="${2}" \
-          prefix \
-          suffix
-  declare content; content="$(cat)"
-
-  [[ ${#} -gt 2 ]] && prefix="${3}"
-  [[ ${#} -gt 3 ]] && suffix="${4}"
-
-  declare marker_rex; marker_rex="$(escape_sed_expr "${marker}")"
-  declare prefix_rex; prefix_rex="$(escape_sed_expr "${prefix}")"
-  declare suffix_rex; suffix_rex="$(escape_sed_expr "${suffix}")"
-
-  declare rex; rex="$(
-    printf -- '\(\s*\)%s\s*%s\(.*\)%s\s*' \
-      "${prefix_rex}" "${marker_rex}" "${suffix_rex}"
-  )"
-
-  declare -i RC=0
-
-  declare line \
-          number \
-          offset \
-          REPLACEMENT \
-          arg
-  while line="$(
-    set -o pipefail
-    grep -n -m 1 -- "^${rex}\$" <<< "${content}" \
-    | sed -e 's/^\([0-9]\+:\)'"${rex}"'$/\1\2\3/' | text_rtrim
-  )"; do
-    # Explicitely remove REPLACEMENT VALUE
-    REPLACEMENT=''
-
-    number="${line%%:*}"
-    line="${line#*:}"
-    offset="$(grep -o '^\s*' <<< "${line}")"
-    arg="$(text_ltrim "${line}")"
-
-    "${replace_cbk}" "${arg}" || { RC=1; continue; }
-    if [[ -n "${REPLACEMENT}" ]]; then
-      # shellcheck disable=SC2001
-      REPLACEMENT="$(sed -e 's/^/'"${offset}"'/' <<< "${REPLACEMENT}")"$'\n'
-    fi
-
-    content="$(
-      printf -- '%s\n%s%s\n' \
-        "$(head -n $((number - 1)) <<< "${content}")" \
-        "${REPLACEMENT}" \
-        "$(tail -n +$((number + 1)) <<< "${content}")"
-    )"
-  done
-
-  printf -- '%s\n' "${content}"
-  return ${RC}
-}
-
-# .LH_SOURCED: {{/ partial/replace-marker.sh }}
-# .LH_SOURCED: {{ base.ignore.sh }}
-# USAGE:
-#   declare -A LH_DEFAULTS=([PARAM_NAME]=VALUE)
-#   lh_params_apply_defaults
-# If LH_PARAMS[PARAM_NAME] is not set, it gets the value from LH_DEFAULTS
-lh_params_apply_defaults() {
-  [[ "$(declare -p LH_PARAMS 2>/dev/null)" == "declare -A"* ]] || declare -Ag LH_PARAMS
-  [[ "$(declare -p LH_DEFAULTS 2>/dev/null)" == "declare -A"* ]] || declare -Ag LH_DEFAULTS
-
-  declare p_name; for p_name in "${!LH_DEFAULTS[@]}"; do
-    [[ -n "${LH_PARAMS[${p_name}]+x}" ]] || LH_PARAMS["${p_name}"]="${LH_DEFAULTS[${p_name}]}"
-  done
-}
-
-lh_params_reset() {
-  unset LH_PARAMS LH_PARAMS_NOVAL
-  declare -Ag LH_PARAMS
-  declare -ag LH_PARAMS_NOVAL
-}
-
-# USAGE:
-#   lh_param_set PARAM_NAME VALUE
-# Produces global LH_PARAMS[PARAM_NAME]=VALUE.
-# When VALUE is not provided returns 1 and puts PARAM_NAME to LH_PARAMS_NOVAL global array
-lh_param_set() {
-  declare name="${1}"
-
-  [[ -n "${2+x}" ]] || { lh_params_noval "${name}"; return 1; }
-
-  [[ "$(declare -p LH_PARAMS 2>/dev/null)" == "declare -A"* ]] || declare -Ag LH_PARAMS
-  LH_PARAMS["${name}"]="${2}"
-}
-
-lh_params_noval() {
-  [[ "$(declare -p LH_PARAMS_NOVAL 2>/dev/null)" == "declare -a"* ]] || {
-    unset LH_PARAMS_NOVAL
-    declare -ag LH_PARAMS_NOVAL
-  }
-
-  [[ ${#} -gt 0 ]] && { LH_PARAMS_NOVAL+=("${@}"); return; }
-
-  [[ ${#LH_PARAMS_NOVAL[@]} -gt 0 ]] || return 1
-  printf -- '%s\n' "${LH_PARAMS_NOVAL[@]}"
-}
-
-# shellcheck disable=SC2120
-lh_params_unsupported() {
-  [[ "$(declare -p LH_PARAMS_UNSUPPORTED 2>/dev/null)" == "declare -a"* ]] || {
-    unset LH_PARAMS_UNSUPPORTED
-    declare -ag LH_PARAMS_UNSUPPORTED
-  }
-
-  [[ ${#} -gt 0 ]] && { LH_PARAMS_UNSUPPORTED+=("${@}"); return; }
-
-  [[ ${#LH_PARAMS_UNSUPPORTED[@]} -gt 0 ]] || return 1
-  printf -- '%s\n' "${LH_PARAMS_UNSUPPORTED[@]}"
-}
-
-lh_params_flush_invalid() {
-  declare -i rc=1
-
-  # shellcheck disable=SC2119
-  declare unsup; unsup="$(lh_params_unsupported)" && {
-    echo "Unsupported params:"
-    printf -- '%s\n' "${unsup}" | sed -e 's/^/* /'
-    rc=0
-  }
-
-  # shellcheck disable=SC2119
-  declare noval; noval="$(lh_params_noval)" && {
-    echo "Values required for:"
-    printf -- '%s\n' "${noval}" | sed -e 's/^/* /'
-    rc=0
-  }
-
-  return ${rc}
-}
-# .LH_SOURCED: {{/ base.ignore.sh }}
 
 # shellcheck disable=SC2317
 compile_bash_file() (
@@ -324,6 +168,161 @@ compile_bash_file() (
 
   main "${@}"
 )
+# .LH_SOURCED: {{ lib/text.sh }}
+# shellcheck disable=SC2001
+# shellcheck disable=SC2120
+text_ltrim() { sed -e 's/^\s\+//' <<< "${1-$(cat)}"; }
+text_rtrim() { sed -e 's/\s\+$//' <<< "${1-$(cat)}"; }
+text_trim() { text_ltrim <<< "${1-$(cat)}" | text_rtrim; }
+text_rmblank() { grep -v '^\s*$' <<< "${1-$(cat)}"; return 0; }
+text_nice() { text_trim <<< "${1-$(cat)}" | text_rmblank | sed -e 's/^,//'; }
+# .LH_SOURCED: {{/ lib/text.sh }}
+# .LH_SOURCED: {{ partial/replace-marker.sh }}
+# cat FILE | get_marker_lines MARKER REPLACE_CBK [COMMENT_PREFIX] [COMMENT_SUFFIX]
+replace_marker() {
+  declare marker="${1}" \
+          replace_cbk="${2}" \
+          prefix \
+          suffix
+  declare content; content="$(cat)"
+
+  [[ ${#} -gt 2 ]] && prefix="${3}"
+  [[ ${#} -gt 3 ]] && suffix="${4}"
+
+  declare marker_rex; marker_rex="$(escape_sed_expr "${marker}")"
+  declare prefix_rex; prefix_rex="$(escape_sed_expr "${prefix}")"
+  declare suffix_rex; suffix_rex="$(escape_sed_expr "${suffix}")"
+
+  declare rex; rex="$(
+    printf -- '\(\s*\)%s\s*%s\(.*\)%s\s*' \
+      "${prefix_rex}" "${marker_rex}" "${suffix_rex}"
+  )"
+
+  declare -i RC=0
+
+  declare line \
+          number \
+          offset \
+          REPLACEMENT \
+          arg
+  while line="$(
+    set -o pipefail
+    grep -n -m 1 -- "^${rex}\$" <<< "${content}" \
+    | sed -e 's/^\([0-9]\+:\)'"${rex}"'$/\1\2\3/' | text_rtrim
+  )"; do
+    # Explicitely remove REPLACEMENT VALUE
+    REPLACEMENT=''
+
+    number="${line%%:*}"
+    line="${line#*:}"
+    offset="$(grep -o '^\s*' <<< "${line}")"
+    arg="$(text_ltrim "${line}")"
+
+    "${replace_cbk}" "${arg}" || { RC=1; continue; }
+    if [[ -n "${REPLACEMENT}" ]]; then
+      # shellcheck disable=SC2001
+      REPLACEMENT="$(sed -e 's/^/'"${offset}"'/' <<< "${REPLACEMENT}")"$'\n'
+    fi
+
+    content="$(
+      printf -- '%s\n%s%s\n' \
+        "$(head -n $((number - 1)) <<< "${content}")" \
+        "${REPLACEMENT}" \
+        "$(tail -n +$((number + 1)) <<< "${content}")"
+    )"
+  done
+
+  printf -- '%s\n' "${content}"
+  return ${RC}
+}
+# .LH_SOURCED: {{ lib/basic.sh }}
+# https://stackoverflow.com/a/2705678
+escape_sed_expr()  { sed -e 's/[]\/$*.^[]/\\&/g' <<< "${1-$(cat)}"; }
+escape_sed_repl()  { sed -e 's/[\/&]/\\&/g' <<< "${1-$(cat)}"; }
+
+escape_single_quotes()  { declare str="${1-$(cat)}"; cat <<< "${str//\'/\'\\\'\'}"; }
+escape_double_quotes()  { declare str="${1-$(cat)}"; cat <<< "${str//\"/\"\\\"\"}"; }
+# .LH_SOURCED: {{/ lib/basic.sh }}
+
+# .LH_SOURCED: {{/ partial/replace-marker.sh }}
+# .LH_SOURCED: {{ base.ignore.sh }}
+# USAGE:
+#   declare -A LH_DEFAULTS=([PARAM_NAME]=VALUE)
+#   lh_params_apply_defaults
+# If LH_PARAMS[PARAM_NAME] is not set, it gets the value from LH_DEFAULTS
+lh_params_apply_defaults() {
+  [[ "$(declare -p LH_PARAMS 2>/dev/null)" == "declare -A"* ]] || declare -Ag LH_PARAMS
+  [[ "$(declare -p LH_DEFAULTS 2>/dev/null)" == "declare -A"* ]] || declare -Ag LH_DEFAULTS
+
+  declare p_name; for p_name in "${!LH_DEFAULTS[@]}"; do
+    [[ -n "${LH_PARAMS[${p_name}]+x}" ]] || LH_PARAMS["${p_name}"]="${LH_DEFAULTS[${p_name}]}"
+  done
+}
+
+lh_params_reset() {
+  unset LH_PARAMS LH_PARAMS_NOVAL
+  declare -Ag LH_PARAMS
+  declare -ag LH_PARAMS_NOVAL
+}
+
+# USAGE:
+#   lh_param_set PARAM_NAME VALUE
+# Produces global LH_PARAMS[PARAM_NAME]=VALUE.
+# When VALUE is not provided returns 1 and puts PARAM_NAME to LH_PARAMS_NOVAL global array
+lh_param_set() {
+  declare name="${1}"
+
+  [[ -n "${2+x}" ]] || { lh_params_noval "${name}"; return 1; }
+
+  [[ "$(declare -p LH_PARAMS 2>/dev/null)" == "declare -A"* ]] || declare -Ag LH_PARAMS
+  LH_PARAMS["${name}"]="${2}"
+}
+
+lh_params_noval() {
+  [[ "$(declare -p LH_PARAMS_NOVAL 2>/dev/null)" == "declare -a"* ]] || {
+    unset LH_PARAMS_NOVAL
+    declare -ag LH_PARAMS_NOVAL
+  }
+
+  [[ ${#} -gt 0 ]] && { LH_PARAMS_NOVAL+=("${@}"); return; }
+
+  [[ ${#LH_PARAMS_NOVAL[@]} -gt 0 ]] || return 1
+  printf -- '%s\n' "${LH_PARAMS_NOVAL[@]}"
+}
+
+# shellcheck disable=SC2120
+lh_params_unsupported() {
+  [[ "$(declare -p LH_PARAMS_UNSUPPORTED 2>/dev/null)" == "declare -a"* ]] || {
+    unset LH_PARAMS_UNSUPPORTED
+    declare -ag LH_PARAMS_UNSUPPORTED
+  }
+
+  [[ ${#} -gt 0 ]] && { LH_PARAMS_UNSUPPORTED+=("${@}"); return; }
+
+  [[ ${#LH_PARAMS_UNSUPPORTED[@]} -gt 0 ]] || return 1
+  printf -- '%s\n' "${LH_PARAMS_UNSUPPORTED[@]}"
+}
+
+lh_params_flush_invalid() {
+  declare -i rc=1
+
+  # shellcheck disable=SC2119
+  declare unsup; unsup="$(lh_params_unsupported)" && {
+    echo "Unsupported params:"
+    printf -- '%s\n' "${unsup}" | sed -e 's/^/* /'
+    rc=0
+  }
+
+  # shellcheck disable=SC2119
+  declare noval; noval="$(lh_params_noval)" && {
+    echo "Values required for:"
+    printf -- '%s\n' "${noval}" | sed -e 's/^/* /'
+    rc=0
+  }
+
+  return ${rc}
+}
+# .LH_SOURCED: {{/ base.ignore.sh }}
 
 # .LH_NOSOURCE
 

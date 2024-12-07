@@ -1,9 +1,5 @@
 #!/usr/bin/env bash
 
-# .LH_SOURCE:lib/text.sh
-# .LH_SOURCE:lib/basic.sh
-# .LH_SOURCE:base.ignore.sh
-
 ssh_gen() (
   declare SELF="${FUNCNAME[0]}"
 
@@ -311,6 +307,10 @@ ssh_gen() (
 
   main "${@}"
 )
+
+# .LH_SOURCE:lib/text.sh
+# .LH_SOURCE:lib/basic.sh
+# .LH_SOURCE:base.ignore.sh
 
 # .LH_NOSOURCE
 

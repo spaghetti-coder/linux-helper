@@ -1,9 +1,5 @@
 #!/usr/bin/env bash
 
-# .LH_SOURCE:lib/text.sh
-# .LH_SOURCE:partial/replace-marker.sh
-# .LH_SOURCE:base.ignore.sh
-
 # shellcheck disable=SC2317
 compile_bash_file() (
   declare SELF="${FUNCNAME[0]}"
@@ -172,6 +168,10 @@ compile_bash_file() (
 
   main "${@}"
 )
+
+# .LH_SOURCE:lib/text.sh
+# .LH_SOURCE:partial/replace-marker.sh
+# .LH_SOURCE:base.ignore.sh
 
 # .LH_NOSOURCE
 

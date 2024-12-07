@@ -1,8 +1,5 @@
 #!/usr/bin/env bash
 
-# .LH_SOURCE:lib/basic.sh
-# .LH_SOURCE:lib/text.sh
-
 # cat FILE | get_marker_lines MARKER REPLACE_CBK [COMMENT_PREFIX] [COMMENT_SUFFIX]
 replace_marker() {
   declare marker="${1}" \
@@ -60,6 +57,9 @@ replace_marker() {
   printf -- '%s\n' "${content}"
   return ${RC}
 }
+
+# .LH_SOURCE:lib/basic.sh
+# .LH_SOURCE:lib/text.sh
 
 # .LH_NOSOURCE
 

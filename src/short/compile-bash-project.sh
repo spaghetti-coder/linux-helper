@@ -1,10 +1,5 @@
 #!/usr/bin/env bash
 
-# .LH_SOURCE:bin/compile-bash-file.sh
-# .LH_SOURCE:lib/basic.sh
-# .LH_SOURCE:lib/text.sh
-# .LH_SOURCE:base.ignore.sh
-
 # shellcheck disable=SC2317
 compile_bash_project() (
   declare SELF="${FUNCNAME[0]}"
@@ -174,6 +169,11 @@ compile_bash_project() (
 
   main "${@}"
 )
+
+# .LH_SOURCE:bin/compile-bash-file.sh
+# .LH_SOURCE:lib/basic.sh
+# .LH_SOURCE:lib/text.sh
+# .LH_SOURCE:base.ignore.sh
 
 # .LH_NOSOURCE
 
