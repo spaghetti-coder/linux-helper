@@ -3,7 +3,7 @@
 # .LH_SOURCE:lib/text.sh
 # .LH_SOURCE:base.ignore.sh
 
-class() (
+git_config() (
   declare SELF="${FUNCNAME[0]}"
 
   declare TEMPLATE; TEMPLATE="$(cat <<'HEREDOC_END'
@@ -103,7 +103,13 @@ HEREDOC_END
       confirm=""
 
       read -erp "Name: " -i "${LH_PARAMS[NAME]}" 'LH_PARAMS[NAME]'
-      read -erp "Age: " -i "${LH_PARAMS[AGE]}" 'LH_PARAMS[AGE]'
+      read -erp "Email: " -i "${LH_PARAMS[EMAIL]}" 'LH_PARAMS[EMAIL]'
+      read -erp "Default branch: " -i \
+        "${LH_PARAMS[DEFAULT_BRANCH]-${LH_DEFAULTS[DEFAULT_BRANCH]}}" \
+        'LH_PARAMS[DEFAULT_BRANCH]'
+      read -erp "Editor: " -i "${LH_PARAMS[EDITOR]-${LH_DEFAULTS[EDITOR]}}" 'LH_PARAMS[EDITOR]'
+      read -erp "Diff tool: " -i "${LH_PARAMS[DIFF_TOOL]-${LH_DEFAULTS[DIFF_TOOL]}}" 'LH_PARAMS[DIFF_TOOL]'
+      read -erp "Merge tool: " -i "${LH_PARAMS[MERGE_TOOL]-${LH_DEFAULTS[MERGE_TOOL]}}" 'LH_PARAMS[MERGE_TOOL]'
 
       echo '============================'
 
@@ -117,20 +123,16 @@ HEREDOC_END
 
   check_required_params() {
     [[ -n "${LH_PARAMS[NAME]}" ]] || lh_params_noval NAME
+    [[ -n "${LH_PARAMS[EMAIL]}" ]] || lh_params_noval EMAIL
   }
 
   apply_defaults() {
     lh_params_apply_defaults
-
-    # ... More complex defaults if required ...
   }
 
   main() {
     # shellcheck disable=SC2015
     parse_params "${@}"
-
-    exit
-
     trap_ask
     check_required_params
 
@@ -151,5 +153,5 @@ HEREDOC_END
 # .LH_NOSOURCE
 
 (return &>/dev/null) || {
-  class "${@}"
+  git_config "${@}"
 }
