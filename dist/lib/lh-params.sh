@@ -26,11 +26,17 @@ lh_params_unsupported() {
   LH_PARAMS_UNSUPPORTED+=("${@}")
 }
 
-# lh_params_defaults \
-#   PARAM_NAME1='DEFAULT_VAL' \
-#   PARAM_NAME2!='prefix_$(!eval_expression)_${SOME_VAR}_${!PARAM_NAME1}_suffix'
+# lh_params_defaults PARAM_NAME1='DEFAULT_VAL'...
 lh_params_defaults() {
   [[ "${FUNCNAME[1]}" != _lh_params_init ]] && { _lh_params_init "${@}"; return $?; }
+
+  declare kv pname pval
+  for kv in "${@}"; do
+    kv="${kv}="
+    pname="${kv%%=*}"
+    pval="${kv#*=}"; pval="${pval::-1}"
+    LH_PARAMS_DEFAULTS["${pname}"]="${pval}"
+  done
 }
 
 _lh_params_init() {
