@@ -150,9 +150,9 @@ ssh_gen_vc() (
   main "${@}"
 )
 
-# .LH_SOURCE:lib/text.sh
-# .LH_SOURCE:lib/lh-params.sh
 # .LH_SOURCE:bin/ssh-gen.sh
+# .LH_SOURCE:lib/lh-params.sh
+# .LH_SOURCE:lib/text.sh
 
 # .LH_NOSOURCE
 

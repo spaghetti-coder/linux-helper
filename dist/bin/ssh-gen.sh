@@ -319,15 +319,6 @@ ssh_gen() (
 
   main "${@}"
 )
-# .LH_SOURCED: {{ lib/text.sh }}
-# shellcheck disable=SC2001
-# shellcheck disable=SC2120
-text_ltrim() { sed -e 's/^\s\+//' <<< "${1-$(cat)}"; }
-text_rtrim() { sed -e 's/\s\+$//' <<< "${1-$(cat)}"; }
-text_trim() { text_ltrim <<< "${1-$(cat)}" | text_rtrim; }
-text_rmblank() { grep -v '^\s*$' <<< "${1-$(cat)}"; return 0; }
-text_nice() { text_trim <<< "${1-$(cat)}" | text_rmblank | sed -e 's/^,//'; }
-# .LH_SOURCED: {{/ lib/text.sh }}
 # .LH_SOURCED: {{ lib/basic.sh }}
 # https://stackoverflow.com/a/2705678
 escape_sed_expr()  { sed -e 's/[]\/$*.^[]/\\&/g' <<< "${1-$(cat)}"; }
@@ -520,6 +511,15 @@ is_port_valid() {
   && [[ "${1}" -le 65535 ]]
 }
 # .LH_SOURCED: {{/ lib/system.sh }}
+# .LH_SOURCED: {{ lib/text.sh }}
+# shellcheck disable=SC2001
+# shellcheck disable=SC2120
+text_ltrim() { sed -e 's/^\s\+//' <<< "${1-$(cat)}"; }
+text_rtrim() { sed -e 's/\s\+$//' <<< "${1-$(cat)}"; }
+text_trim() { text_ltrim <<< "${1-$(cat)}" | text_rtrim; }
+text_rmblank() { grep -v '^\s*$' <<< "${1-$(cat)}"; return 0; }
+text_nice() { text_trim <<< "${1-$(cat)}" | text_rmblank | sed -e 's/^,//'; }
+# .LH_SOURCED: {{/ lib/text.sh }}
 
 # .LH_NOSOURCE
 

@@ -320,10 +320,10 @@ ssh_gen() (
   main "${@}"
 )
 
-# .LH_SOURCE:lib/text.sh
 # .LH_SOURCE:lib/basic.sh
 # .LH_SOURCE:lib/lh-params.sh
 # .LH_SOURCE:lib/system.sh
+# .LH_SOURCE:lib/text.sh
 
 # .LH_NOSOURCE
 

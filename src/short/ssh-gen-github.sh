@@ -91,8 +91,8 @@ ssh_gen_github() (
   main "${@}"
 )
 
-# .LH_SOURCE:short/ssh-gen-vc.sh
 # .LH_SOURCE:lib/text.sh
+# .LH_SOURCE:short/ssh-gen-vc.sh
 
 # .LH_NOSOURCE
 

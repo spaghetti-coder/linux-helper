@@ -81,35 +81,6 @@ config_tmux_append_source_line() (
     set -x; umask 0077; "${tee_cmd[@]}" >/dev/null
   )
 )
-# .LH_SOURCED: {{ lib/system.sh }}
-is_user_root() { [[ "$(id -u)" -eq 0 ]]; }
-is_user_privileged() { is_user_root && [[ -n "${SUDO_USER}" ]]; }
-
-privileged_user_home() { eval echo ~"${SUDO_USER}"; }
-
-alias_home_in_path() {
-  declare path="${1}" home="${2:-${HOME}}"
-  declare home_rex; home_rex="$(escape_sed_expr "${home%/}")"
-
-  # shellcheck disable=SC2001
-  sed -e 's/^'"${home_rex}"'/~/' <<< "${path}"
-}
-
-is_port_valid() {
-  grep -qx -- '[0-9]\+' <<< "${1}" \
-  && [[ "${1}" -ge 0 ]] \
-  && [[ "${1}" -le 65535 ]]
-}
-# .LH_SOURCED: {{/ lib/system.sh }}
-# .LH_SOURCED: {{ lib/text.sh }}
-# shellcheck disable=SC2001
-# shellcheck disable=SC2120
-text_ltrim() { sed -e 's/^\s\+//' <<< "${1-$(cat)}"; }
-text_rtrim() { sed -e 's/\s\+$//' <<< "${1-$(cat)}"; }
-text_trim() { text_ltrim <<< "${1-$(cat)}" | text_rtrim; }
-text_rmblank() { grep -v '^\s*$' <<< "${1-$(cat)}"; return 0; }
-text_nice() { text_trim <<< "${1-$(cat)}" | text_rmblank | sed -e 's/^,//'; }
-# .LH_SOURCED: {{/ lib/text.sh }}
 # .LH_SOURCED: {{ base.ignore.sh }}
 # USAGE:
 #   declare -A LH_DEFAULTS=([PARAM_NAME]=VALUE)
@@ -188,6 +159,35 @@ lh_params_flush_invalid() {
   return ${rc}
 }
 # .LH_SOURCED: {{/ base.ignore.sh }}
+# .LH_SOURCED: {{ lib/system.sh }}
+is_user_root() { [[ "$(id -u)" -eq 0 ]]; }
+is_user_privileged() { is_user_root && [[ -n "${SUDO_USER}" ]]; }
+
+privileged_user_home() { eval echo ~"${SUDO_USER}"; }
+
+alias_home_in_path() {
+  declare path="${1}" home="${2:-${HOME}}"
+  declare home_rex; home_rex="$(escape_sed_expr "${home%/}")"
+
+  # shellcheck disable=SC2001
+  sed -e 's/^'"${home_rex}"'/~/' <<< "${path}"
+}
+
+is_port_valid() {
+  grep -qx -- '[0-9]\+' <<< "${1}" \
+  && [[ "${1}" -ge 0 ]] \
+  && [[ "${1}" -le 65535 ]]
+}
+# .LH_SOURCED: {{/ lib/system.sh }}
+# .LH_SOURCED: {{ lib/text.sh }}
+# shellcheck disable=SC2001
+# shellcheck disable=SC2120
+text_ltrim() { sed -e 's/^\s\+//' <<< "${1-$(cat)}"; }
+text_rtrim() { sed -e 's/\s\+$//' <<< "${1-$(cat)}"; }
+text_trim() { text_ltrim <<< "${1-$(cat)}" | text_rtrim; }
+text_rmblank() { grep -v '^\s*$' <<< "${1-$(cat)}"; return 0; }
+text_nice() { text_trim <<< "${1-$(cat)}" | text_rmblank | sed -e 's/^,//'; }
+# .LH_SOURCED: {{/ lib/text.sh }}
 # .LH_SOURCED: {{/ config/tmux/tmux-base.ignore.sh }}
 
 # If not a file, default to ssh-gen.sh script name

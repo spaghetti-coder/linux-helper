@@ -74,6 +74,6 @@ config_tmux_append_source_line() (
   )
 )
 
+# .LH_SOURCE:base.ignore.sh
 # .LH_SOURCE:lib/system.sh
 # .LH_SOURCE:lib/text.sh
-# .LH_SOURCE:base.ignore.sh
