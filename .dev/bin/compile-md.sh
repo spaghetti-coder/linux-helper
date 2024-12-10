@@ -7,7 +7,7 @@ PROJ_DIR="$(realpath -m --relative-to "$(pwd)" -- "$(dirname -- "${0}")/../..")"
 SRC_DIR="${PROJ_DIR}/src"
 DIST_DIR="${PROJ_DIR}/dist"
 
-SRC_MD="${SRC_DIR}/README.md"
+SRC_MD="${SRC_DIR}/README.tpl.md"
 DEST_MD="${PROJ_DIR}/README.md"
 
 BASE_RAW_URL=https://raw.githubusercontent.com/spaghetti-coder/linux-helper
