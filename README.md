@@ -356,6 +356,39 @@
 
 ## Config
 
+<a id="config/bash/bashrcd.sh"></a>
+<details><summary>config/bash/bashrcd.sh</summary>
+
+  [Link to the section](#config/bash/bashrcd.sh)
+  
+  **AD HOC:**
+  ~~~sh
+  # Review and change input params (after "bash -s --")
+  # VERSION can be changed to any treeish
+  (
+    VERSION='master'
+    curl -V &>/dev/null && dl_tool=(curl -sL) || dl_tool=(wget -qO-)
+    set -x; "${dl_tool[@]}" "https://raw.githubusercontent.com/spaghetti-coder/linux-helper/${VERSION:-master}/dist/config/bash/bashrcd.sh" \
+    || "${dl_tool[@]}" "https://bitbucket.org/kvedenskii/linux-scripts/raw/${VERSION:-master}/dist/config/bash/bashrcd.sh"
+  ) | bash -s --
+  ~~~
+  
+  
+  **MAN:**
+  ~~~
+  Create ~/.bashrc.d directory and source all its '*.sh' scripts to ~/.bashrc
+  
+  USAGE:
+  =====
+  bashrcd.sh
+  
+  DEMO:
+  ====
+  bashrcd.sh
+  ~~~
+  
+</details>
+
 <a id="config/tmux/tmux-default.sh"></a>
 <details><summary>config/tmux/tmux-default.sh</summary>
 

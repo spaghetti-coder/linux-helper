@@ -20,6 +20,8 @@
 
 ## Config
 
+<!-- .LH_DETAILS:config/bash/bashrcd.sh -->
+
 <a id="config/tmux/tmux-default.sh"></a>
 <details><summary>config/tmux/tmux-default.sh</summary>
 
