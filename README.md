@@ -389,6 +389,39 @@
   
 </details>
 
+<a id="config/git/git-ps1.sh"></a>
+<details><summary>config/git/git-ps1.sh</summary>
+
+  [Link to the section](#config/git/git-ps1.sh)
+  
+  **AD HOC:**
+  ~~~sh
+  # Review and change input params (after "bash -s --")
+  # VERSION can be changed to any treeish
+  (
+    VERSION='master'
+    curl -V &>/dev/null && dl_tool=(curl -sL) || dl_tool=(wget -qO-)
+    set -x; "${dl_tool[@]}" "https://raw.githubusercontent.com/spaghetti-coder/linux-helper/${VERSION:-master}/dist/config/git/git-ps1.sh" \
+    || "${dl_tool[@]}" "https://bitbucket.org/kvedenskii/linux-scripts/raw/${VERSION:-master}/dist/config/git/git-ps1.sh"
+  ) | bash -s --
+  ~~~
+  
+  
+  **MAN:**
+  ~~~
+  Cusomize bash PS1 prompt for git
+  
+  USAGE:
+  =====
+  git-ps1.sh
+  
+  DEMO:
+  ====
+  git-ps1.sh
+  ~~~
+  
+</details>
+
 <a id="config/tmux/tmux-default.sh"></a>
 <details><summary>config/tmux/tmux-default.sh</summary>
 
