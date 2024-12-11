@@ -21,6 +21,7 @@
 ## Config
 
 <!-- .LH_DETAILS:config/bash/bashrcd.sh -->
+<!-- .LH_DETAILS:config/git/git-ps1.sh -->
 
 <a id="config/tmux/tmux-default.sh"></a>
 <details><summary>config/tmux/tmux-default.sh</summary>

@@ -1,5 +1,79 @@
 #!/usr/bin/env bash
 
+git_ps1() (
+  { # Service vars
+    declare -r SELF="${FUNCNAME[0]}"
+
+    # If not a file, default to git-ps1.sh script name
+    declare THE_SCRIPT=git-ps1.sh
+    grep -q -m 1 -- '.' "${0}" 2>/dev/null && THE_SCRIPT="$(basename -- "${0}")"
+  }
+
+  declare CONF_PATH; CONF_PATH="$(bashrcd home)/500-git-ps1.sh"
+
+  declare CONFIG; CONFIG="$(cat <<'.LH_HEREDOC'
+# Attempt to fix __git_ps1 not found in RHEL-like, Debian-like, Alpine
+# shellcheck disable=SC1091
+declare -F __git_ps1 &>/dev/null \
+|| . /usr/share/git-core/contrib/completion/git-prompt.sh 2>/dev/null \
+|| . /usr/lib/git-core/git-sh-prompt 2>/dev/null \
+|| . /usr/share/git-core/git-prompt.sh 2>/dev/null
+
+# shellcheck disable=SC2016
+PS1="$(
+  printf -- '%s%s%s\n' \
+    '\[\033[01;31m\]\u@\h\[\033[00m\] \[\033[01;32m\]\w\[\033[00m\]' \
+    '$(GIT_PS1_SHOWDIRTYSTATE=1 __git_ps1 '\'' (\[\033[01;33m\]%s\[\033[00m\])'\'' 2>/dev/null)' \
+    ' \[\033[01;33m\]\$\[\033[00m\] '
+)"
+.LH_HEREDOC
+)"
+
+  print_usage() { echo "${THE_SCRIPT}"; }
+
+  print_help() { text_nice "
+    Cusomize bash PS1 prompt for git
+   ,
+    USAGE:
+    =====
+    $(print_usage)
+   ,
+    DEMO:
+    ====
+    ${THE_SCRIPT}
+  "; }
+
+  parse_params() {
+    declare endopts=false
+    declare param
+    while [[ ${#} -gt 0 ]]; do
+      ${endopts} && param='*' || param="${1}"
+
+      case "${param}" in
+        --            ) endopts=true ;;
+        -\?|-h|--help ) print_help; exit ;;
+        --usage       ) print_usage | text_nice; exit ;;
+        *             ) lh_params unsupported "${1}" ;;
+      esac
+
+      shift
+    done
+  }
+
+  main() {
+    parse_params "${@}"
+
+    lh_params invalids >&2 && {
+      echo "FATAL (${SELF})" >&2
+      return 1
+    }
+
+    bashrcd main && (set -x; tee -- "${CONF_PATH}" <<< "${CONFIG}" >/dev/null)
+  }
+
+  main "${@}"
+)
+# .LH_SOURCED: {{ config/bash/bashrcd.sh }}
 # shellcheck disable=SC2317
 bashrcd() (
   { # Service vars
@@ -294,8 +368,10 @@ text_rmblank() { grep -v '^\s*$' <<< "${1-$(cat)}"; return 0; }
 text_nice() { text_trim <<< "${1-$(cat)}" | text_rmblank | sed -e 's/^,//'; }
 # .LH_SOURCED: {{/ lib/text.sh }}
 
+# .LH_SOURCED: {{/ config/bash/bashrcd.sh }}
+
 # .LH_NOSOURCE
 
 (return &>/dev/null) || {
-  bashrcd main "${@}"
+  git_ps1 "${@}"
 }
