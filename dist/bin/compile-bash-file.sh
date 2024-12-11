@@ -340,16 +340,7 @@ _lh_params_init() {
   }
 }
 # .LH_SOURCED: {{/ lib/lh-params.sh }}
-# .LH_SOURCED: {{ lib/text.sh }}
-# shellcheck disable=SC2001
-# shellcheck disable=SC2120
-text_ltrim() { sed -e 's/^\s\+//' <<< "${1-$(cat)}"; }
-text_rtrim() { sed -e 's/\s\+$//' <<< "${1-$(cat)}"; }
-text_trim() { text_ltrim <<< "${1-$(cat)}" | text_rtrim; }
-text_rmblank() { grep -v '^\s*$' <<< "${1-$(cat)}"; return 0; }
-text_nice() { text_trim <<< "${1-$(cat)}" | text_rmblank | sed -e 's/^,//'; }
-# .LH_SOURCED: {{/ lib/text.sh }}
-# .LH_SOURCED: {{ partial/replace-marker.sh }}
+# .LH_SOURCED: {{ lib/partial/replace-marker.sh }}
 # cat FILE | get_marker_lines MARKER REPLACE_CBK [COMMENT_PREFIX] [COMMENT_SUFFIX]
 replace_marker() {
   declare marker="${1}" \
@@ -415,8 +406,17 @@ escape_sed_repl()  { sed -e 's/[\/&]/\\&/g' <<< "${1-$(cat)}"; }
 escape_single_quotes()  { declare str="${1-$(cat)}"; cat <<< "${str//\'/\'\\\'\'}"; }
 escape_double_quotes()  { declare str="${1-$(cat)}"; cat <<< "${str//\"/\"\\\"\"}"; }
 # .LH_SOURCED: {{/ lib/basic.sh }}
+# .LH_SOURCED: {{ lib/text.sh }}
+# shellcheck disable=SC2001
+# shellcheck disable=SC2120
+text_ltrim() { sed -e 's/^\s\+//' <<< "${1-$(cat)}"; }
+text_rtrim() { sed -e 's/\s\+$//' <<< "${1-$(cat)}"; }
+text_trim() { text_ltrim <<< "${1-$(cat)}" | text_rtrim; }
+text_rmblank() { grep -v '^\s*$' <<< "${1-$(cat)}"; return 0; }
+text_nice() { text_trim <<< "${1-$(cat)}" | text_rmblank | sed -e 's/^,//'; }
+# .LH_SOURCED: {{/ lib/text.sh }}
 
-# .LH_SOURCED: {{/ partial/replace-marker.sh }}
+# .LH_SOURCED: {{/ lib/partial/replace-marker.sh }}
 
 # .LH_NOSOURCE
 

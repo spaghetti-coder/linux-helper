@@ -178,8 +178,8 @@ compile_bash_file() (
 )
 
 # .LH_SOURCE:lib/lh-params.sh
+# .LH_SOURCE:lib/partial/replace-marker.sh
 # .LH_SOURCE:lib/text.sh
-# .LH_SOURCE:partial/replace-marker.sh
 
 # .LH_NOSOURCE
 

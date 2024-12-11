@@ -19,7 +19,7 @@ BASE_VERSION=master
   declare cache_file="${PROJ_DIR}/.dev/cache/compile-md.deps.sh"
 
   if : \
-    && deps="$(set -x; cat -- "${DIST_DIR}/partial/replace-marker.sh" 2>/dev/null)" \
+    && deps="$(set -x; cat -- "${DIST_DIR}/lib/partial/replace-marker.sh" 2>/dev/null)" \
     && deps+=$'\n'"$(set -x; cat -- "${DIST_DIR}/lib/basic.sh" 2>/dev/null)" \
     && deps+=$'\n'"$(set -x; cat -- "${DIST_DIR}/lib/text.sh" 2>/dev/null)" \
   ; then
