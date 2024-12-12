@@ -4,6 +4,7 @@
 
 * [Tools](#tools)
 * [Config](#config)
+* [Proxmox](#proxmox)
 * [Libraries](#libraries)
 * [Development](#development)
 
@@ -17,14 +18,13 @@
   **AD HOC:**
   ~~~sh
   # Review and change input params (after "bash -s --")
-  # VERSION can be changed to any treeish
+  # LH_VERSION can be changed to any treeish
   (
-    VERSION='master'
+    LH_VERSION='master'
     curl -V &>/dev/null && dl_tool=(curl -sL) || dl_tool=(wget -qO-)
-    set -x; "${dl_tool[@]}" "https://raw.githubusercontent.com/spaghetti-coder/linux-helper/${VERSION:-master}/dist/bin/compile-bash-file.sh" \
-    || "${dl_tool[@]}" "https://bitbucket.org/kvedenskii/linux-scripts/raw/${VERSION:-master}/dist/bin/compile-bash-file.sh"
-  ) | bash -s -- \
-    [--] SRC_FILE DEST_FILE LIBS_PATH
+    set -x; "${dl_tool[@]}" "https://github.com/spaghetti-coder/linux-helper/raw/${LH_VERSION:-master}/dist/bin/compile-bash-file.sh" \
+    || "${dl_tool[@]}" "https://bitbucket.org/kvedenskii/linux-scripts/raw/${LH_VERSION:-master}/dist/bin/compile-bash-file.sh"
+  ) | bash -s -- [--] SRC_FILE DEST_FILE LIBS_PATH
   ~~~
   
   
@@ -95,14 +95,13 @@
   **AD HOC:**
   ~~~sh
   # Review and change input params (after "bash -s --")
-  # VERSION can be changed to any treeish
+  # LH_VERSION can be changed to any treeish
   (
-    VERSION='master'
+    LH_VERSION='master'
     curl -V &>/dev/null && dl_tool=(curl -sL) || dl_tool=(wget -qO-)
-    set -x; "${dl_tool[@]}" "https://raw.githubusercontent.com/spaghetti-coder/linux-helper/${VERSION:-master}/dist/bin/demo.sh" \
-    || "${dl_tool[@]}" "https://bitbucket.org/kvedenskii/linux-scripts/raw/${VERSION:-master}/dist/bin/demo.sh"
-  ) | bash -s -- \
-    [--ask] [--age AGE='0'] [--domain DOMAIN="$(hostname -f)"] [--] NAME
+    set -x; "${dl_tool[@]}" "https://github.com/spaghetti-coder/linux-helper/raw/${LH_VERSION:-master}/dist/bin/demo.sh" \
+    || "${dl_tool[@]}" "https://bitbucket.org/kvedenskii/linux-scripts/raw/${LH_VERSION:-master}/dist/bin/demo.sh"
+  ) | bash -s -- [--ask] [--age AGE='0'] [--domain DOMAIN="$(hostname -f)"] [--] NAME
   ~~~
   
   
@@ -141,14 +140,13 @@
   **AD HOC:**
   ~~~sh
   # Review and change input params (after "bash -s --")
-  # VERSION can be changed to any treeish
+  # LH_VERSION can be changed to any treeish
   (
-    VERSION='master'
+    LH_VERSION='master'
     curl -V &>/dev/null && dl_tool=(curl -sL) || dl_tool=(wget -qO-)
-    set -x; "${dl_tool[@]}" "https://raw.githubusercontent.com/spaghetti-coder/linux-helper/${VERSION:-master}/dist/bin/ssh-gen.sh" \
-    || "${dl_tool[@]}" "https://bitbucket.org/kvedenskii/linux-scripts/raw/${VERSION:-master}/dist/bin/ssh-gen.sh"
-  ) | bash -s -- \
-    [--ask] [--host HOST=HOSTNAME] [--port PORT='22'] \
+    set -x; "${dl_tool[@]}" "https://github.com/spaghetti-coder/linux-helper/raw/${LH_VERSION:-master}/dist/bin/ssh-gen.sh" \
+    || "${dl_tool[@]}" "https://bitbucket.org/kvedenskii/linux-scripts/raw/${LH_VERSION:-master}/dist/bin/ssh-gen.sh"
+  ) | bash -s -- [--ask] [--host HOST=HOSTNAME] [--port PORT='22'] \
     [--comment COMMENT="$(id -un)@$(hostname -f)"] [--dirname DIRNAME=HOSTNAME] \
     [--filename FILENAME=USER] [--dest-dir DEST_DIR] [--] HOSTNAME USER
   ~~~
@@ -203,14 +201,13 @@
   **AD HOC:**
   ~~~sh
   # Review and change input params (after "bash -s --")
-  # VERSION can be changed to any treeish
+  # LH_VERSION can be changed to any treeish
   (
-    VERSION='master'
+    LH_VERSION='master'
     curl -V &>/dev/null && dl_tool=(curl -sL) || dl_tool=(wget -qO-)
-    set -x; "${dl_tool[@]}" "https://raw.githubusercontent.com/spaghetti-coder/linux-helper/${VERSION:-master}/dist/short/compile-bash-project.sh" \
-    || "${dl_tool[@]}" "https://bitbucket.org/kvedenskii/linux-scripts/raw/${VERSION:-master}/dist/short/compile-bash-project.sh"
-  ) | bash -s -- \
-    [--ext EXT='.sh']... [--no-ext NO_EXT]... [--] \
+    set -x; "${dl_tool[@]}" "https://github.com/spaghetti-coder/linux-helper/raw/${LH_VERSION:-master}/dist/short/compile-bash-project.sh" \
+    || "${dl_tool[@]}" "https://bitbucket.org/kvedenskii/linux-scripts/raw/${LH_VERSION:-master}/dist/short/compile-bash-project.sh"
+  ) | bash -s -- [--ext EXT='.sh']... [--no-ext NO_EXT]... [--] \
     SRC_DIR DEST_DIR
   ~~~
   
@@ -258,14 +255,13 @@
   **AD HOC:**
   ~~~sh
   # Review and change input params (after "bash -s --")
-  # VERSION can be changed to any treeish
+  # LH_VERSION can be changed to any treeish
   (
-    VERSION='master'
+    LH_VERSION='master'
     curl -V &>/dev/null && dl_tool=(curl -sL) || dl_tool=(wget -qO-)
-    set -x; "${dl_tool[@]}" "https://raw.githubusercontent.com/spaghetti-coder/linux-helper/${VERSION:-master}/dist/short/ssh-gen-github.sh" \
-    || "${dl_tool[@]}" "https://bitbucket.org/kvedenskii/linux-scripts/raw/${VERSION:-master}/dist/short/ssh-gen-github.sh"
-  ) | bash -s -- \
-    [--ask] [--host HOST='github.com'] \
+    set -x; "${dl_tool[@]}" "https://github.com/spaghetti-coder/linux-helper/raw/${LH_VERSION:-master}/dist/short/ssh-gen-github.sh" \
+    || "${dl_tool[@]}" "https://bitbucket.org/kvedenskii/linux-scripts/raw/${LH_VERSION:-master}/dist/short/ssh-gen-github.sh"
+  ) | bash -s -- [--ask] [--host HOST='github.com'] \
     [--comment COMMENT="$(id -un)@$(hostname -f)"] [--] [ACCOUNT='git']
   ~~~
   
@@ -308,14 +304,13 @@
   **AD HOC:**
   ~~~sh
   # Review and change input params (after "bash -s --")
-  # VERSION can be changed to any treeish
+  # LH_VERSION can be changed to any treeish
   (
-    VERSION='master'
+    LH_VERSION='master'
     curl -V &>/dev/null && dl_tool=(curl -sL) || dl_tool=(wget -qO-)
-    set -x; "${dl_tool[@]}" "https://raw.githubusercontent.com/spaghetti-coder/linux-helper/${VERSION:-master}/dist/short/ssh-gen-vc.sh" \
-    || "${dl_tool[@]}" "https://bitbucket.org/kvedenskii/linux-scripts/raw/${VERSION:-master}/dist/short/ssh-gen-vc.sh"
-  ) | bash -s -- \
-    [--ask] [--host HOST=HOSTNAME] [--port PORT='22'] \
+    set -x; "${dl_tool[@]}" "https://github.com/spaghetti-coder/linux-helper/raw/${LH_VERSION:-master}/dist/short/ssh-gen-vc.sh" \
+    || "${dl_tool[@]}" "https://bitbucket.org/kvedenskii/linux-scripts/raw/${LH_VERSION:-master}/dist/short/ssh-gen-vc.sh"
+  ) | bash -s -- [--ask] [--host HOST=HOSTNAME] [--port PORT='22'] \
     [--comment COMMENT="$(id -un)@$(hostname -f)"] [--] HOSTNAME [ACCOUNT=git]
   ~~~
   
@@ -364,12 +359,12 @@
   **AD HOC:**
   ~~~sh
   # Review and change input params (after "bash -s --")
-  # VERSION can be changed to any treeish
+  # LH_VERSION can be changed to any treeish
   (
-    VERSION='master'
+    LH_VERSION='master'
     curl -V &>/dev/null && dl_tool=(curl -sL) || dl_tool=(wget -qO-)
-    set -x; "${dl_tool[@]}" "https://raw.githubusercontent.com/spaghetti-coder/linux-helper/${VERSION:-master}/dist/config/bash/bashrcd.sh" \
-    || "${dl_tool[@]}" "https://bitbucket.org/kvedenskii/linux-scripts/raw/${VERSION:-master}/dist/config/bash/bashrcd.sh"
+    set -x; "${dl_tool[@]}" "https://github.com/spaghetti-coder/linux-helper/raw/${LH_VERSION:-master}/dist/config/bash/bashrcd.sh" \
+    || "${dl_tool[@]}" "https://bitbucket.org/kvedenskii/linux-scripts/raw/${LH_VERSION:-master}/dist/config/bash/bashrcd.sh"
   ) | bash -s --
   ~~~
   
@@ -397,12 +392,12 @@
   **AD HOC:**
   ~~~sh
   # Review and change input params (after "bash -s --")
-  # VERSION can be changed to any treeish
+  # LH_VERSION can be changed to any treeish
   (
-    VERSION='master'
+    LH_VERSION='master'
     curl -V &>/dev/null && dl_tool=(curl -sL) || dl_tool=(wget -qO-)
-    set -x; "${dl_tool[@]}" "https://raw.githubusercontent.com/spaghetti-coder/linux-helper/${VERSION:-master}/dist/config/git/git-ps1.sh" \
-    || "${dl_tool[@]}" "https://bitbucket.org/kvedenskii/linux-scripts/raw/${VERSION:-master}/dist/config/git/git-ps1.sh"
+    set -x; "${dl_tool[@]}" "https://github.com/spaghetti-coder/linux-helper/raw/${LH_VERSION:-master}/dist/config/git/git-ps1.sh" \
+    || "${dl_tool[@]}" "https://bitbucket.org/kvedenskii/linux-scripts/raw/${LH_VERSION:-master}/dist/config/git/git-ps1.sh"
   ) | bash -s --
   ~~~
   
@@ -427,19 +422,18 @@
 
   [Link to the section](#config/tmux/tmux-default.sh)
 
-  View [`default.conf`](https://raw.githubusercontent.com/spaghetti-coder/linux-helper/master/src/asset/conf/tmux/default.conf)
+  View [`default.conf`](https://github.com/spaghetti-coder/linux-helper/raw/master/src/asset/conf/tmux/default.conf)
   
   **AD HOC:**
   ~~~sh
   # Review and change input params (after "bash -s --")
-  # VERSION can be changed to any treeish
+  # LH_VERSION can be changed to any treeish
   (
-    VERSION='master'
+    LH_VERSION='master'
     curl -V &>/dev/null && dl_tool=(curl -sL) || dl_tool=(wget -qO-)
-    set -x; "${dl_tool[@]}" "https://raw.githubusercontent.com/spaghetti-coder/linux-helper/${VERSION:-master}/dist/config/tmux/tmux-default.sh" \
-    || "${dl_tool[@]}" "https://bitbucket.org/kvedenskii/linux-scripts/raw/${VERSION:-master}/dist/config/tmux/tmux-default.sh"
-  ) | bash -s -- \
-    [--] [CONFD="${HOME}/.tmux"]
+    set -x; "${dl_tool[@]}" "https://github.com/spaghetti-coder/linux-helper/raw/${LH_VERSION:-master}/dist/config/tmux/tmux-default.sh" \
+    || "${dl_tool[@]}" "https://bitbucket.org/kvedenskii/linux-scripts/raw/${LH_VERSION:-master}/dist/config/tmux/tmux-default.sh"
+  ) | bash -s -- [--] [CONFD="${HOME}/.tmux"]
   ~~~
   
   
@@ -485,19 +479,18 @@
 
   [Link to the section](#config/tmux/tmux-plugins.sh)
 
-  View [`plugins.conf`](https://raw.githubusercontent.com/spaghetti-coder/linux-helper/master/src/asset/conf/tmux/plugins.conf) and [`appendix.conf`](https://raw.githubusercontent.com/spaghetti-coder/linux-helper/master/src/asset/conf/tmux/appendix.conf)
+  View [`plugins.conf`](https://github.com/spaghetti-coder/linux-helper/raw/master/src/asset/conf/tmux/plugins.conf) and [`appendix.conf`](https://github.com/spaghetti-coder/linux-helper/raw/master/src/asset/conf/tmux/appendix.conf)
   
   **AD HOC:**
   ~~~sh
   # Review and change input params (after "bash -s --")
-  # VERSION can be changed to any treeish
+  # LH_VERSION can be changed to any treeish
   (
-    VERSION='master'
+    LH_VERSION='master'
     curl -V &>/dev/null && dl_tool=(curl -sL) || dl_tool=(wget -qO-)
-    set -x; "${dl_tool[@]}" "https://raw.githubusercontent.com/spaghetti-coder/linux-helper/${VERSION:-master}/dist/config/tmux/tmux-plugins.sh" \
-    || "${dl_tool[@]}" "https://bitbucket.org/kvedenskii/linux-scripts/raw/${VERSION:-master}/dist/config/tmux/tmux-plugins.sh"
-  ) | bash -s -- \
-    [--] [CONFD="${HOME}/.tmux"]
+    set -x; "${dl_tool[@]}" "https://github.com/spaghetti-coder/linux-helper/raw/${LH_VERSION:-master}/dist/config/tmux/tmux-plugins.sh" \
+    || "${dl_tool[@]}" "https://bitbucket.org/kvedenskii/linux-scripts/raw/${LH_VERSION:-master}/dist/config/tmux/tmux-plugins.sh"
+  ) | bash -s -- [--] [CONFD="${HOME}/.tmux"]
   ~~~
   
   
@@ -545,6 +538,110 @@
 
 [To top]
 
+## Proxmox
+
+<a id="pve/bin/lxc-deploy.sh"></a>
+<details><summary>pve/bin/lxc-deploy.sh</summary>
+
+  [Link to the section](#pve/bin/lxc-deploy.sh)
+  
+  **AD HOC:**
+  ~~~sh
+  # Review and change input params (after "bash -s --")
+  # LH_VERSION can be changed to any treeish
+  (
+    LH_VERSION='master'
+    curl -V &>/dev/null && dl_tool=(curl -sL) || dl_tool=(wget -qO-)
+    set -x; "${dl_tool[@]}" "https://github.com/spaghetti-coder/linux-helper/raw/${LH_VERSION:-master}/dist/pve/bin/lxc-deploy.sh" \
+    || "${dl_tool[@]}" "https://bitbucket.org/kvedenskii/linux-scripts/raw/${LH_VERSION:-master}/dist/pve/bin/lxc-deploy.sh"
+  ) | bash -s -- [ID] [--ask] [--storage STORAGE] [--disk DISK] [--ram RAM] \
+    [--cores CORES] [--template TEMPLATE='ubuntu-24.04'] [--privileged] \
+    [--onboot] [--root-pass ROOT_PASS] \
+    [--root-pass-envvar ROOT_PASS_ENVVAR='LH_LXC_ROOT_PASS'] \
+    [--hostname HOSTNAME] [--net-bridge NET_BRIDGE='vmbr0'] \
+    [--net-ip NET_IP='dhcp'] [--net-gate NET_GATE] [--profile PROFILE]... \
+    [--after-create AFTER_CREATE]... \
+    [--in-container IN_CONTAINER]...
+  ~~~
+  
+  Or download it locally, edit configration section of the downloaded file and execute
+
+  ~~~sh
+  # LH_VERSION can be changed to any treeish
+  (
+    LH_VERSION='master'
+    curl -V &>/dev/null && dl_tool=(curl -sL) || dl_tool=(wget -qO-)
+    set -x; "${dl_tool[@]}" "https://github.com/spaghetti-coder/linux-helper/raw/${LH_VERSION:-master}/dist/pve/bin/lxc-deploy.sh" \
+    || "${dl_tool[@]}" "https://bitbucket.org/kvedenskii/linux-scripts/raw/${LH_VERSION:-master}/dist/pve/bin/lxc-deploy.sh"
+  ) | (DEST=./my-lxc.sh; set -x; tee -- "${DEST}" >/dev/null; chmod +x -- "${DEST}")
+  ~~~
+  
+  **MAN:**
+  ~~~
+  Deploy LXC container using self-contained script
+  
+  USAGE:
+  =====
+  lxc-deploy.sh [ID] [--ask] [--storage STORAGE] [--disk DISK] [--ram RAM] \
+    [--cores CORES] [--template TEMPLATE='ubuntu-24.04'] [--privileged] \
+    [--onboot] [--root-pass ROOT_PASS] \
+    [--root-pass-envvar ROOT_PASS_ENVVAR='LH_LXC_ROOT_PASS'] \
+    [--hostname HOSTNAME] [--net-bridge NET_BRIDGE='vmbr0'] \
+    [--net-ip NET_IP='dhcp'] [--net-gate NET_GATE] [--profile PROFILE]... \
+    [--after-create AFTER_CREATE]... \
+    [--in-container IN_CONTAINER]...
+  
+  PARAMS:
+  ======
+  ID          Numeric LXC container ID. Defaults to autogenerated
+  --ask       Provoke a prompt for all params
+  --storage   PVE storage to use. Defaults to automanaged
+  --disk      Disk size in GB. Defaults to template default
+  --ram       RAM size in MB. Defaults to template default
+  --cores     Number of cores. Defaults to template default
+  --template    Container template best guess hint from
+                http://download.proxmox.com/images/system
+  --privileged  Privileged container. Can be manipulated by some of profiles
+  --onboot      Start container on PVE boot
+  --root-pass   Container root password. If not set will attempt to get it from
+                the env variable provided by --root-pass-envvar. In the end
+                container root password must be reachable.
+  --root-pass-envvar  Environment variable to read container password from
+  --hostname    Container hostname
+  --net-bridge  PVE bridge network
+  --net-ip      Container IP or 'dhcp' if managed by the router
+  --net-gate    Default gateway. Required when NET_IP is not 'dhcp'
+  --profile     Convenience profiles configuring the container for some purpose.
+                Can be set multiple times or space separated
+  --after-create  Hook function that will run after container created on the PVE
+                  machine. Can be set multiple times or space separated. The
+                  function must be accessible in the configuration file.
+  --in-container  Hook function that will run in the container. The container
+                  will be started and stopped automatically. Can be set multiple
+                  times or space separated. The function must be accessible in
+                  the configuration file.
+  
+  PROFILES:
+  ========
+  * docker-ready - container is ready for docker installation
+  * git-ps1 - install git-ps1 for container root user
+  * vpn-ready - container is ready for VPN
+  
+  DEMO:
+  ====
+  # Edit configuration section in lxc-deploy.sh and run it to deploy LXC
+  lxc-deploy.sh
+  
+  # Run overriding some configs in the configuration file and in
+  # interactive mode
+  LXC_PASS=qwerty lxc-deploy.sh --ask --privileged --disk 45 \
+    --root-pass-env LXC_PASS 120
+  ~~~
+  
+</details>  
+
+[To top]
+
 ## Libraries
 
 TODO
@@ -578,12 +675,12 @@ This triggers:
     **AD HOC:**
     ~~~sh
     # Review and change input params (after "bash -s --")
-    # VERSION can be changed to any treeish
+    # LH_VERSION can be changed to any treeish
     (
-      VERSION='master'
+      LH_VERSION='master'
       curl -V &>/dev/null && dl_tool=(curl -sL) || dl_tool=(wget -qO-)
-      set -x; "${dl_tool[@]}" "https://raw.githubusercontent.com/spaghetti-coder/linux-helper/${VERSION:-master}/dist/short/compile-bash-project.sh" \
-      || "${dl_tool[@]}" "https://bitbucket.org/kvedenskii/linux-scripts/raw/${VERSION:-master}/dist/short/compile-bash-project.sh"
+      set -x; "${dl_tool[@]}" "https://github.com/spaghetti-coder/linux-helper/raw/${LH_VERSION:-master}/dist/short/compile-bash-project.sh" \
+      || "${dl_tool[@]}" "https://bitbucket.org/kvedenskii/linux-scripts/raw/${LH_VERSION:-master}/dist/short/compile-bash-project.sh"
     ) | bash -s -- --help | less
     ~~~
     

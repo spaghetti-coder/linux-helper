@@ -38,8 +38,9 @@ download_tool() {
     declare -n _dt_the_tool="${1}"
   fi
 
-  curl -V &>/dev/null && _dt_the_tool=(curl -sfL --) || _dt_the_tool=(wget -qO- --)
-  "${_dt_the_tool[@]}" -V &>/dev/null || return
+  { curl -V &>/dev/null && _dt_the_tool=(curl -sfL --); } \
+  || { wget -V &>/dev/null &&  _dt_the_tool=(wget -qO- --); } \
+  || return
 
   if [[ -n "${_dt_the_url}" ]]; then
     (set -x; "${_dt_the_tool[@]}" "${_dt_the_url}")
@@ -52,4 +53,10 @@ escape_sed_repl()  { sed -e 's/[\/&]/\\&/g' <<< "${1-$(cat)}"; }
 
 escape_single_quotes()  { declare str="${1-$(cat)}"; cat <<< "${str//\'/\'\\\'\'}"; }
 escape_double_quotes()  { declare str="${1-$(cat)}"; cat <<< "${str//\"/\"\\\"\"}"; }
+
+to_bool() {
+  [[ "${1,,}" =~ ^(1|y|yes|true)$ ]] && { echo true; return; }
+  [[ "${1,,}" =~ ^(0|n|no|false)$ ]] && { echo false; return; }
+  return 1
+}
 # .LH_SOURCED: {{/ lib/basic.sh }}
