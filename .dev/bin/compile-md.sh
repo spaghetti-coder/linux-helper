@@ -10,7 +10,7 @@ DIST_DIR="${PROJ_DIR}/dist"
 SRC_MD="${SRC_DIR}/README.tpl.md"
 DEST_MD="${PROJ_DIR}/README.md"
 
-BASE_RAW_URL=https://raw.githubusercontent.com/spaghetti-coder/linux-helper
+BASE_RAW_URL=https://github.com/spaghetti-coder/linux-helper/raw
 BASE_RAW_URL_ALT=https://bitbucket.org/kvedenskii/linux-scripts/raw
 BASE_VERSION=master
 
@@ -60,13 +60,13 @@ replace_adhoc_cbk() {
   if ${RAPLACE_ADHOC_USAGE:-false}; then
     params="$(set -o pipefail
       (set -x; "${DIST_DIR}/${1}" --usage) | sed 's/$/ /' \
-      | cut -d ' ' -f2- | text_ltrim | sed 's/^/,  /' | text_trim
+      | cut -d ' ' -f2- | text_ltrim | sed '2,$s/^/,  /' | text_trim
     )" || return $?
 
     [[ "${params}" == ',' ]] && params=''
 
     if [[ -n "${params}" ]]; then
-      params=" \\"$'\n'"${params}"
+      params=" ${params}"
     fi
   elif [[ -n "${params}" ]]; then
     params=" ${params}"
@@ -76,13 +76,13 @@ replace_adhoc_cbk() {
     **AD HOC:**
     ~~~sh
     # Review and change input params (after "bash -s --")
-    # VERSION can be changed to any treeish
-    (
-   ,  VERSION='"'${BASE_VERSION}'"'
-   ,  curl -V &>/dev/null && dl_tool=(curl -sL) || dl_tool=(wget -qO-)
-   ,  set -x; "${dl_tool[@]}" "'"${BASE_RAW_URL}/\${VERSION:-master}/dist/${file}"'" \
-   ,  || "${dl_tool[@]}" "'"${BASE_RAW_URL_ALT}/\${VERSION:-master}/dist/${file}"'"
-    ) | bash -s --'"${params}"'
+    # LH_VERSION can be changed to any treeish
+    bash -- <(
+   ,  LH_VERSION='"'${BASE_VERSION}'"'
+   ,  curl -V &>/dev/null && dl_tool=(curl -fsSL) || dl_tool=(wget -qO-)
+   ,  set -x; "${dl_tool[@]}" "'"${BASE_RAW_URL}/\${LH_VERSION:-master}/dist/${file}"'" \
+   ,  || "${dl_tool[@]}" "'"${BASE_RAW_URL_ALT}/\${LH_VERSION:-master}/dist/${file}"'"
+    )'"${params}"'
     ~~~
   ')"$'\n'
 }

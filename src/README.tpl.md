@@ -4,6 +4,7 @@
 
 * [Tools](#tools)
 * [Config](#config)
+* [Proxmox](#proxmox)
 * [Libraries](#libraries)
 * [Development](#development)
 
@@ -61,6 +62,30 @@
   View [`plugins.conf`](@@BASE_RAW_URL/master/src/asset/conf/tmux/plugins.conf) and [`appendix.conf`](@@BASE_RAW_URL/master/src/asset/conf/tmux/appendix.conf)
   <!-- .LH_ADHOC_USAGE:config/tmux/tmux-plugins.sh -->
   <!-- .LH_HELP:config/tmux/tmux-plugins.sh -->
+</details>  
+
+[To top]
+
+## Proxmox
+
+<a id="pve/bin/lxc-deploy.sh"></a>
+<details><summary>pve/bin/lxc-deploy.sh</summary>
+
+  [Link to the section](#pve/bin/lxc-deploy.sh)
+
+  <!-- .LH_ADHOC_USAGE:pve/bin/lxc-deploy.sh -->
+  Or download it locally, edit configration section of the downloaded file and execute
+
+  ~~~sh
+  # LH_VERSION can be changed to any treeish
+  (
+    LH_VERSION='master'
+    curl -V &>/dev/null && dl_tool=(curl -fsSL) || dl_tool=(wget -qO-)
+    set -x; "${dl_tool[@]}" "@@BASE_RAW_URL/${LH_VERSION:-master}/dist/pve/bin/lxc-deploy.sh" \
+    || "${dl_tool[@]}" "@@BASE_RAW_URL_ALT/${LH_VERSION:-master}/dist/pve/bin/lxc-deploy.sh"
+  ) | (DEST=./my-lxc.sh; set -x; tee -- "${DEST}" >/dev/null; chmod +x -- "${DEST}")
+  ~~~
+  <!-- .LH_HELP:pve/bin/lxc-deploy.sh -->
 </details>  
 
 [To top]

@@ -29,6 +29,7 @@ lh_params_set() {
 lh_params_get() {
   [[ "${FUNCNAME[1]}" != _lh_params_init ]] && { _lh_params_init "${@}"; return $?; }
   [[ -n "${LH_PARAMS[${1}]+x}" ]] && { cat <<< "${LH_PARAMS[${1}]}"; return; }
+  declare -F "lh_params_get_${1}" &>/dev/null && { "lh_params_get_${1}"; return; }
   [[ -n "${2+x}" ]] && { cat <<< "${2}"; return; }
   declare -F "lh_params_default_${1}" &>/dev/null && { "lh_params_default_${1}"; return; }
   [[ -n "${LH_PARAMS_DEFAULTS[${1}]+x}" ]] && { cat <<< "${LH_PARAMS_DEFAULTS[${1}]}"; return; }
@@ -90,13 +91,12 @@ lh_params_ask_config() {
       continue
     }
 
-    LH_PARAMS_ASK["${pname}"]+="${LH_PARAMS_ASK["${pname}"]+$'\n'}${ptext}"
+    # Exclude ':*' adaptor suffix from pname
+    LH_PARAMS_ASK["${pname%:*}"]+="${LH_PARAMS_ASK["${pname%:*}"]+$'\n'}${ptext}"
   done
 }
 
 lh_params_ask() {
-  declare confirm pname ptext
-
   [[ -n "${LH_PARAMS_ASK_EXCLUDE+x}" ]] && {
     LH_PARAMS_ASK_EXCLUDE="$(
       # shellcheck disable=SC2001
@@ -105,24 +105,75 @@ lh_params_ask() {
     )"
   }
 
-  while ! [[ "${confirm:-n}" == y ]]; do
-    confirm=""
-
+  declare confirm pname question handler_id
+  while ! ${confirm-false}; do
     for pname in "${LH_PARAMS_ASK_PARAMS[@]}"; do
+      handler_id="$(
+        set -o pipefail
+        grep -o ':[^:]\+$' <<< "${pname}" | sed -e 's/^://'
+      )" || handler_id=default
+      pname="${pname%:*}"
+
       # Don't prompt for params in LH_PARAMS_ASK_EXCLUDE (text) list
       grep -qFx -- "${pname}" <<< "${LH_PARAMS_ASK_EXCLUDE}" && continue
 
-      read  -erp "${LH_PARAMS_ASK[${pname}]}" \
-            -i "$(lh_params_get "${pname}")" "LH_PARAMS[${pname}]"
+      question="${LH_PARAMS_ASK[${pname}]}"
+      "lh_params_ask_${handler_id}_handler" "${pname}" "${question}"
     done
 
     echo '============================' >&2
 
-    while [[ ! " y n " == *" ${confirm} "* ]]; do
+    confirm=nobool
+    while ! to_bool "${confirm}" >/dev/null; do
       read -rp "YES (y) for proceeding or NO (n) to repeat: " confirm
-      [[ "${confirm,,}" =~ ^(y|yes)$ ]] && confirm=y
-      [[ "${confirm,,}" =~ ^(n|no)$ ]] && confirm=n
+      confirm="$(to_bool "${confirm}")"
     done
+  done
+}
+
+lh_params_ask_default_handler() {
+  declare pname="${1}"
+  declare question="${2}"
+  declare answer
+
+  read -erp "${question}" -i "$(lh_params_get "${pname}")" answer
+  lh_params_set "${pname}" "${answer}"
+}
+
+lh_params_ask_pass_handler() {
+  declare pname="${1}"
+  declare question="${2}"
+  declare answer answer_repeat
+  while :; do
+    read -srp "${question}" answer
+    echo >&2
+    read -srp "Confirm ${question}" answer_repeat
+    echo >&2
+
+    [[ "${answer}" == "${answer_repeat}" ]] || {
+      echo "Confirm value doesn't match! Try again" >&2
+      continue
+    }
+
+    [[ -n "${answer}" ]] && lh_params_set "${pname}" "${answer}"
+    break
+  done
+}
+
+lh_params_ask_bool_handler() {
+  declare pname="${1}"
+  declare question="${2}"
+  declare answer
+  while :; do
+    read -erp "${question}" -i "$(lh_params_get "${pname}")" answer
+
+    answer="$(to_bool "${answer}")" || {
+      echo "'${answer}' is not a valid boolean value! Try again" >&2
+      continue
+    }
+
+    lh_params_set "${pname}" "${answer}"
+    break
   done
 }
 
@@ -162,3 +213,5 @@ _lh_params_init() {
     "${FUNCNAME[1]}" "${@}"
   }
 }
+
+# .LH_SOURCE:lib/basic.sh

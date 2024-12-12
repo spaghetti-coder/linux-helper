@@ -9,7 +9,6 @@ ssh_gen_github() (
     grep -q -m 1 -- '.' "${0}" 2>/dev/null && THE_SCRIPT="$(basename -- "${0}")"
   }
 
-
   # shellcheck disable=SC2016
   declare -A DEFAULTS=(
     [account]=git
