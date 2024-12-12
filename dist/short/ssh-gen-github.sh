@@ -9,7 +9,6 @@ ssh_gen_github() (
     grep -q -m 1 -- '.' "${0}" 2>/dev/null && THE_SCRIPT="$(basename -- "${0}")"
   }
 
-
   # shellcheck disable=SC2016
   declare -A DEFAULTS=(
     [account]=git
@@ -574,6 +573,17 @@ escape_sed_repl()  { sed -e 's/[\/&]/\\&/g' <<< "${1-$(cat)}"; }
 
 escape_single_quotes()  { declare str="${1-$(cat)}"; cat <<< "${str//\'/\'\\\'\'}"; }
 escape_double_quotes()  { declare str="${1-$(cat)}"; cat <<< "${str//\"/\"\\\"\"}"; }
+
+to_bool() {
+  [[ "${1,,}" =~ ^(1|y|yes|true)$ ]] && { echo true; return; }
+  [[ "${1,,}" =~ ^(0|n|no|false)$ ]] && { echo false; return; }
+  return 1
+}
+
+# https://unix.stackexchange.com/a/194790
+uniq_ordered() {
+  cat -n <<< "${1-$(cat)}" | sort -k2 -k1n  | uniq -f1 | sort -nk1,1 | cut -f2-
+}
 # .LH_SOURCED: {{/ lib/basic.sh }}
 # .LH_SOURCED: {{ lib/lh-params.sh }}
 lh_params() { lh_params_"${1//-/_}" "${@:2}"; }
@@ -605,6 +615,7 @@ lh_params_set() {
 lh_params_get() {
   [[ "${FUNCNAME[1]}" != _lh_params_init ]] && { _lh_params_init "${@}"; return $?; }
   [[ -n "${LH_PARAMS[${1}]+x}" ]] && { cat <<< "${LH_PARAMS[${1}]}"; return; }
+  declare -F "lh_params_get_${1}" &>/dev/null && { "lh_params_get_${1}"; return; }
   [[ -n "${2+x}" ]] && { cat <<< "${2}"; return; }
   declare -F "lh_params_default_${1}" &>/dev/null && { "lh_params_default_${1}"; return; }
   [[ -n "${LH_PARAMS_DEFAULTS[${1}]+x}" ]] && { cat <<< "${LH_PARAMS_DEFAULTS[${1}]}"; return; }
@@ -666,13 +677,12 @@ lh_params_ask_config() {
       continue
     }
 
-    LH_PARAMS_ASK["${pname}"]+="${LH_PARAMS_ASK["${pname}"]+$'\n'}${ptext}"
+    # Exclude ':*' adaptor suffix from pname
+    LH_PARAMS_ASK["${pname%:*}"]+="${LH_PARAMS_ASK["${pname%:*}"]+$'\n'}${ptext}"
   done
 }
 
 lh_params_ask() {
-  declare confirm pname ptext
-
   [[ -n "${LH_PARAMS_ASK_EXCLUDE+x}" ]] && {
     LH_PARAMS_ASK_EXCLUDE="$(
       # shellcheck disable=SC2001
@@ -681,24 +691,75 @@ lh_params_ask() {
     )"
   }
 
-  while ! [[ "${confirm:-n}" == y ]]; do
-    confirm=""
-
+  declare confirm pname question handler_id
+  while ! ${confirm-false}; do
     for pname in "${LH_PARAMS_ASK_PARAMS[@]}"; do
+      handler_id="$(
+        set -o pipefail
+        grep -o ':[^:]\+$' <<< "${pname}" | sed -e 's/^://'
+      )" || handler_id=default
+      pname="${pname%:*}"
+
       # Don't prompt for params in LH_PARAMS_ASK_EXCLUDE (text) list
       grep -qFx -- "${pname}" <<< "${LH_PARAMS_ASK_EXCLUDE}" && continue
 
-      read  -erp "${LH_PARAMS_ASK[${pname}]}" \
-            -i "$(lh_params_get "${pname}")" "LH_PARAMS[${pname}]"
+      question="${LH_PARAMS_ASK[${pname}]}"
+      "lh_params_ask_${handler_id}_handler" "${pname}" "${question}"
     done
 
     echo '============================' >&2
 
-    while [[ ! " y n " == *" ${confirm} "* ]]; do
+    confirm=nobool
+    while ! to_bool "${confirm}" >/dev/null; do
       read -rp "YES (y) for proceeding or NO (n) to repeat: " confirm
-      [[ "${confirm,,}" =~ ^(y|yes)$ ]] && confirm=y
-      [[ "${confirm,,}" =~ ^(n|no)$ ]] && confirm=n
+      confirm="$(to_bool "${confirm}")"
     done
+  done
+}
+
+lh_params_ask_default_handler() {
+  declare pname="${1}"
+  declare question="${2}"
+  declare answer
+
+  read -erp "${question}" -i "$(lh_params_get "${pname}")" answer
+  lh_params_set "${pname}" "${answer}"
+}
+
+lh_params_ask_pass_handler() {
+  declare pname="${1}"
+  declare question="${2}"
+  declare answer answer_repeat
+  while :; do
+    read -srp "${question}" answer
+    echo >&2
+    read -srp "Confirm ${question}" answer_repeat
+    echo >&2
+
+    [[ "${answer}" == "${answer_repeat}" ]] || {
+      echo "Confirm value doesn't match! Try again" >&2
+      continue
+    }
+
+    [[ -n "${answer}" ]] && lh_params_set "${pname}" "${answer}"
+    break
+  done
+}
+
+lh_params_ask_bool_handler() {
+  declare pname="${1}"
+  declare question="${2}"
+  declare answer
+  while :; do
+    read -erp "${question}" -i "$(lh_params_get "${pname}")" answer
+
+    answer="$(to_bool "${answer}")" || {
+      echo "'${answer}' is not a valid boolean value! Try again" >&2
+      continue
+    }
+
+    lh_params_set "${pname}" "${answer}"
+    break
   done
 }
 
@@ -770,7 +831,7 @@ is_port_valid() {
 download_tool() {
   declare _dt_the_url
 
-  if grep -qF -- '://' <<< "${1}"; then
+  if [[ "${1}" == *'://'* ]]; then
     _dt_the_url="${1}"
     declare -a _dt_the_tool
   else
@@ -778,8 +839,9 @@ download_tool() {
     declare -n _dt_the_tool="${1}"
   fi
 
-  curl -V &>/dev/null && _dt_the_tool=(curl -sfL --) || _dt_the_tool=(wget -qO- --)
-  "${_dt_the_tool[@]}" -V &>/dev/null || return
+  { curl -V &>/dev/null && _dt_the_tool=(curl -fsSL --); } \
+  || { wget -V &>/dev/null &&  _dt_the_tool=(wget -qO- --); } \
+  || return
 
   if [[ -n "${_dt_the_url}" ]]; then
     (set -x; "${_dt_the_tool[@]}" "${_dt_the_url}")
