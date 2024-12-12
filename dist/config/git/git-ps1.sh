@@ -349,6 +349,33 @@ is_port_valid() {
   && [[ "${1}" -ge 0 ]] \
   && [[ "${1}" -le 65535 ]]
 }
+
+# USAGE:
+#   # Cache the download tool and use it
+#   declare -a DL_TOOL
+#   download_tool DL_TOOL
+#   "${DL_TOOL[@]}" https://google.com > google.txt
+#
+#   # Just use it to download
+#   download_tool https://google.com > google.txt
+download_tool() {
+  declare _dt_the_url
+
+  if grep -qF -- '://' <<< "${1}"; then
+    _dt_the_url="${1}"
+    declare -a _dt_the_tool
+  else
+    # shellcheck disable=SC2178
+    declare -n _dt_the_tool="${1}"
+  fi
+
+  curl -V &>/dev/null && _dt_the_tool=(curl -sfL --) || _dt_the_tool=(wget -qO- --)
+  "${_dt_the_tool[@]}" -V &>/dev/null || return
+
+  if [[ -n "${_dt_the_url}" ]]; then
+    (set -x; "${_dt_the_tool[@]}" "${_dt_the_url}")
+  fi
+}
 # .LH_SOURCED: {{ lib/basic.sh }}
 # https://stackoverflow.com/a/2705678
 escape_sed_expr()  { sed -e 's/[]\/$*.^[]/\\&/g' <<< "${1-$(cat)}"; }
