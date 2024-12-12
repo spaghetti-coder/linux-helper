@@ -590,7 +590,7 @@ lh_params_reset() {
 lh_params_set() {
   [[ "${FUNCNAME[1]}" != _lh_params_init ]] && { _lh_params_init "${@}"; return $?; }
   [[ -n "${2+x}" ]] || { lh_params_noval "${1}"; return 1; }
-  # shellcheck disable=SC2034
+  declare -f "lh_params_set_${1}" &>/dev/null && { "lh_params_set_${1}" "${2}"; return $?; }
   LH_PARAMS["${1}"]="${2}"
 }
 

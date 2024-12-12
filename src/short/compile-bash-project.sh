@@ -19,6 +19,9 @@ compile_bash_project() (
   init() {
     # Ensure clean environment
     lh_params reset
+
+    lh_params_set_EXT() { EXTS+=("${1}"); }
+    lh_params_set_NO_EXT() { NO_EXTS+=("${1}"); }
   }
 
   print_usage() { echo "
@@ -70,8 +73,8 @@ compile_bash_project() (
         --            ) endopts=true ;;
         -\?|-h|--help ) print_help; exit ;;
         --usage       ) print_usage | text_nice; exit ;;
-        --ext         ) [[ -n "${2+x}" ]] && { EXTS+=("${2}"); shift; } || lh_params noval EXT ;;
-        --no-ext      ) [[ -n "${2+x}" ]] && { NO_EXTS+=("${2}"); shift; } || lh_params noval NO_EXT ;;
+        --ext         ) lh_params set EXT "${@:2:1}"; shift ;;
+        --no-ext      ) lh_params set NO_EXT "${@:2:1}"; shift ;;
         -*            ) lh_params unsupported "${1}" ;;
         *             ) args+=("${1}") ;;
       esac
