@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+# shellcheck disable=SC2317
 git_ps1() (
   { # Service vars
     declare -r SELF="${FUNCNAME[0]}"
@@ -71,7 +72,18 @@ PS1="$(
     bashrcd main && (set -x; tee -- "${CONF_PATH}" <<< "${CONFIG}" >/dev/null)
   }
 
-  main "${@}"
+  declare -a EXPORTS=(
+    main
+  )
+
+  if printf -- '%s\n' "${EXPORTS[@]}" | grep -qFx -- "${1//-/_}"; then
+    "${1//-/_}" "${@:2}"
+  else
+    lh_params unsupported "${1}"; lh_params invalids >&2 && {
+      echo "FATAL (${SELF})" >&2
+      return 1
+    }
+  fi
 )
 # .LH_SOURCED: {{ config/bash/bashrcd.sh }}
 # shellcheck disable=SC2317
@@ -458,5 +470,5 @@ text_nice() { text_trim <<< "${1-$(cat)}" | text_rmblank | sed -e 's/^,//'; }
 # .LH_NOSOURCE
 
 (return &>/dev/null) || {
-  git_ps1 "${@}"
+  git_ps1 main "${@}"
 }

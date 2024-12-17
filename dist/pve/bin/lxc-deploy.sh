@@ -377,9 +377,16 @@ lxc_deploy() {
 
     # Apply hooks
     apply_after_create
-    # apply_in_container || { lh_params errbag "Some of container hooks failed"; }
+    apply_in_container
 
-    ! lh_params invalids >&2 || return 1
+    if "$(lh_params get ONBOOT)"; then
+      lxc_do "$(lh_params get ID)" ensure-up 0
+    fi
+
+    ! lh_params invalids >&2 || {
+      echo "(${SELF})" >&2
+      return 1
+    }
   }
 
   # ^^^^ #
@@ -460,12 +467,12 @@ lxc_deploy() {
     [[ ${#_hooks_queue[@]} -gt 0 ]] || return 0
 
     declare f; for f in "${_hooks_queue[@]}"; do
-      echo "# Applying '${f}' ${hook_type^^} function"
+      echo "# Applying '${f}' ${hook_type^^} function" >&2
 
       "${f}" "$(lh_params get ID)" \
-        || lh_params errbag "${hook_type^^} function '${f}' execting error"
+        || lh_params errbag "${hook_type^^} function '${f}' execution error"
     done
-    echo "# Done applying ${type_plural}"
+    echo "# Done applying ${type_plural}" >&2
   }
 
   apply_profiles() {
@@ -506,7 +513,7 @@ lxc_deploy() {
       return
     }
 
-    declare -r CT_ID="${1}"
+    _LH_LXC_IN_CONTAINER+=(_int_in_container_git_ps1)
   }
 
   lxc_profile_vpn_ready() {
@@ -527,32 +534,90 @@ lxc_deploy() {
   }
 
   _int_after_create_apparmor_unconfined() {
-    declare -r CT_ID="${1}"
-    lxc_do ensure_confline "${CT_ID}" 'lxc.apparmor.profile: unconfined'
+    declare -r ct_id="${1}"
+    lxc_do "${ct_id}" ensure-confline 'lxc.apparmor.profile: unconfined'
   }
 
   _int_after_create_allow_vpn() {
-    declare -r CT_ID="${1}"
+    declare -r ct_id="${1}"
+
     # https://pve.proxmox.com/wiki/OpenVPN_in_LXC
     declare -a conflines=(
       "lxc.mount.entry: /dev/net dev/net none bind,create=dir 0 0"
       "lxc.cgroup2.devices.allow: c 10:200 rwm"
     )
     # for GP client in cenos
-    grep -q '\s*ostype:\s*centos\s*' "/etc/pve/lxc/${CT_ID}.conf" && conflines+=("lxc.cap.drop:")
+    grep -q '\s*ostype:\s*centos\s*' "/etc/pve/lxc/${ct_id}.conf" && conflines+=("lxc.cap.drop:")
 
-    lxc_do ensure_confline "${CT_ID}" "${conflines[@]}"
+    lxc_do "${ct_id}" ensure-confline "${conflines[@]}"
   }
 
   # ^^^^^^^^^^^^ #
   # AFTER_CREATE #
   ################
 
+  apply_in_container() {
+    # shellcheck disable=SC2178
+    [[ ${#_LH_LXC_IN_CONTAINER[@]} -gt 0 ]] || return 0
+
+    declare ct_id; ct_id="$(lh_params get ID)"
+    declare was_up; was_up=false
+
+    lxc_do "${ct_id}" is-up && was_up=true
+
+    declare func
+    declare -i warm=15
+    declare ix; for ix in "${!_LH_LXC_IN_CONTAINER[@]}"; do
+      [[ ${ix} -gt 0 ]] && warm=5
+
+      func="${_LH_LXC_IN_CONTAINER[${ix}]}"
+
+
+      echo "# Applying '${func}' IN_CONTAINER function" >&2
+
+      lxc_do "${ct_id}" ensure-up ${warm}
+      lxc_do "${ct_id}" exec-cbk -s "${func}" \
+      || lh_params errbag "IN_CONTAINER function '${func}' execution error"
+
+      lxc_do "${ct_id}" ensure-down
+    done
+    echo "# Done applying IN_CONTAINER" >&2
+
+    if ${was_up}; then lxc_do "${ct_id}" ensure-up; fi
+  }
+
+  _int_in_container_git_ps1() {
+    declare -r BASE_RAW_URL=https://github.com/spaghetti-coder/linux-helper/raw
+    declare -r BASE_RAW_URL_ALT=https://bitbucket.org/kvedenskii/linux-scripts/raw
+
+    declare -a install_cmd=(dnf install -y)
+    declare -a cache_update_cmd=(true)
+
+    apk --version &>/dev/null && install_cmd=(apk add --update --no-cache)
+    apt-get --version &>/dev/null && {
+      install_cmd=(apt-get install -y)
+      cache_update_cmd=(apt-get update)
+    }
+
+    declare path='master/dist/config/git/git-ps1.sh'
+    (set -x; "${cache_update_cmd[@]}"; "${install_cmd[@]}" curl)
+    (
+      set -x
+      {
+        curl -sfL "${BASE_RAW_URL}/${path}" \
+        || curl -sfL "${BASE_RAW_URL_ALT}/${path}"
+      } | bash -s --
+    )
+  }
+
+  # ^^^^^^^^^^^^ #
+  # IN_CONTAINER #
+  ################
+
   declare -a EXPORTS=(
     main
   )
 
-  # shellcheck disable=SC2015
   if printf -- '%s\n' "${EXPORTS[@]}" | grep -qFx -- "${1//-/_}"; then
     "${1//-/_}" "${@:2}"
   else
@@ -851,16 +916,17 @@ text_nice() { text_trim <<< "${1-$(cat)}" | text_rmblank | sed -e 's/^,//'; }
 # .LH_SOURCED: {{ pve/lib/lxc-do.sh }}
 # shellcheck disable=SC2317
 lxc_do() (
+  # lxc_do CT_ID COMMAND [ARG...]
+
   declare SELF="${FUNCNAME[0]}"
 
-  # add_confline CT_ID CONFLINE... || { ERR_BLOCK }
   ensure_confline() {
-    declare -r ct_id="${1}"
-    declare -a conflines=("${@:2}")
-    declare conffile="/etc/pve/lxc/${ct_id}.conf"
+    # ensure_confline CONFLINE... || { ERR_BLOCK }
+
+    declare conffile="/etc/pve/lxc/${CT_ID}.conf"
 
     declare opt val rex add_lines
-    declare line; for line in "${conflines[@]}"; do
+    declare line; for line in "${@}"; do
       line="$(sed -e 's/^\s*//' -e 's/\s*$//' <<< "${line}")"
       opt="$(cut -d: -f1 <<< "${line}:")"
       val="$(cut -d: -f2- <<< "${line}:" | sed -e 's/^\s*//' -e 's/:$//')"
@@ -875,9 +941,110 @@ lxc_do() (
     printf -- '%s\n' "${add_lines}" | (set -x; tee -a -- "${conffile}" >/dev/null)
   }
 
-  declare EXPORTS=(
-    ensure_confline
+  ensure_down() {
+    # ensure_down || { ERR_BLOCK }
+
+    if ! is_down; then
+      (set -x; pct shutdown "${CT_ID}")
+    fi
+  }
+
+  ensure_up() {
+    # ensure_up [WARMUP_SEC=5] || { ERR_BLOCK }
+
+    declare warm="${1-5}"
+
+    if ! is_up; then
+      (set -x; pct start "${CT_ID}") || return
+      (set -x; lxc-wait "${CT_ID}" --state="RUNNING" -t 10)
+    fi
+
+    # Give it time to warm up the services
+    warm="$(( warm - "$(get_uptime)" ))"
+    if [[ "${warm}" -gt 0 ]]; then (set -x; sleep "${warm}" ); fi
+  }
+
+  exec_cbk() {
+    # exec_cbk [-s|--silent] FUNCNAME [ARG...] || { ERR_BLOCK }
+
+    declare -a prefix=(set -x)
+
+    [[ "${1}" =~ ^(-s|--silent)$ ]] && { prefix=(true); shift; }
+
+    declare cbk="${1}"
+    declare -a args
+
+    declare arg; for arg in "${@:3}"; do
+      args+=("'$(escape_single_quotes "${arg}")'")
+    done
+
+    declare cmd
+    cmd="$(declare -f "${cbk}")" || return
+    cmd+="${cmd:+$'\n'}${cbk}"
+    [[ ${#args[@]} -lt 1 ]] || cmd+=' '
+    cmd+="${args[*]}"
+
+    # Attempt to install bash if not installed
+    lxc-attach -n "${CT_ID}" -- bash -c true
+    [[ $? == 127 ]] && (
+      set -x
+      lxc-attach -n "${CT_ID}" -- /bin/sh -c \
+        'apk add --update --no-cache bash' 2>/dev/null
+    )
+    [[ $? == 127 ]] && (
+      set -x
+      lxc-attach -n "${CT_ID}" -- /bin/sh -c \
+        'dnf install -y bash' 2>/dev/null
+    )
+    [[ $? == 127 ]] && (
+      set -x
+      lxc-attach -n "${CT_ID}" -- /bin/sh -c \
+        'apt-get --version && apt-get update && apt-get install -y bash' 2>/dev/null
+    )
+
+    ("${prefix[@]}"; pct exec "${CT_ID}" -- bash -c "${cmd}")
+  }
+
+  get_uptime() (
+    # get_uptime
+
+    _get_uptime() { grep -o "^[0-9]\\+" /proc/uptime 2>/dev/null || echo 0; }
+    exec_cbk -s _get_uptime
   )
+
+  is_down() {
+    # is_down && { IS_DOWN_BLOCK } || { IS_UP_BLOCK }
+
+    pct status "${CT_ID}" | grep -q ' stopped$'
+  }
+
+  is_up() {
+    # is_up && { IS_UP_BLOCK } || { IS_DOWN_BLOCK }
+
+    pct status "${CT_ID}" | grep -q ' running$'
+  }
+
+  # ^^^^^^^^^ #
+  # FUNCTIONS #
+  #############
+
+  declare -ar EXPORTS=(
+    ensure_confline
+    ensure_down
+    ensure_up
+    exec_cbk
+    get_uptime
+    is_down
+    is_up
+  )
+
+  declare -r CT_ID="${1}"; shift
+  if [[ -z "${CT_ID:+x}" ]]; then
+    lh_params errbag "CT_ID is required, and can't be empty"; lh_params invalids >&2 && {
+      echo "FATAL (${SELF})" >&2
+      return 1
+    }
+  fi
 
   # shellcheck disable=SC2015
   if printf -- '%s\n' "${EXPORTS[@]}" | grep -qFx -- "${1//-/_}"; then
