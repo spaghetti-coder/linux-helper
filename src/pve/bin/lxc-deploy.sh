@@ -576,7 +576,7 @@ lxc_deploy() {
       echo "# Applying '${func}' IN_CONTAINER function" >&2
 
       lxc_do "${ct_id}" ensure-up ${warm}
-      lxc_do "${ct_id}" exec-cbk -s "${func}" \
+      lxc_do "${ct_id}" exec-cbk "${func}" \
       || lh_params errbag "IN_CONTAINER function '${func}' execution error"
 
       lxc_do "${ct_id}" ensure-down

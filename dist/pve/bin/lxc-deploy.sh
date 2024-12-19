@@ -576,7 +576,7 @@ lxc_deploy() {
       echo "# Applying '${func}' IN_CONTAINER function" >&2
 
       lxc_do "${ct_id}" ensure-up ${warm}
-      lxc_do "${ct_id}" exec-cbk -s "${func}" \
+      lxc_do "${ct_id}" exec-cbk "${func}" \
       || lh_params errbag "IN_CONTAINER function '${func}' execution error"
 
       lxc_do "${ct_id}" ensure-down
@@ -965,16 +965,16 @@ lxc_do() (
   }
 
   exec_cbk() {
-    # exec_cbk [-s|--silent] FUNCNAME [ARG...] || { ERR_BLOCK }
+    # exec_cbk [-v|--verbose] FUNCNAME [ARG...] || { ERR_BLOCK }
 
-    declare -a prefix=(set -x)
+    declare -a prefix=(true)
 
-    [[ "${1}" =~ ^(-s|--silent)$ ]] && { prefix=(true); shift; }
+    [[ "${1}" =~ ^(-v|--verbose)$ ]] && { prefix=(set -x); shift; }
 
     declare cbk="${1}"
     declare -a args
 
-    declare arg; for arg in "${@:3}"; do
+    declare arg; for arg in "${@:2}"; do
       args+=("'$(escape_single_quotes "${arg}")'")
     done
 
@@ -1002,14 +1002,14 @@ lxc_do() (
         'apt-get --version && apt-get update && apt-get install -y bash' 2>/dev/null
     )
 
-    ("${prefix[@]}"; pct exec "${CT_ID}" -- bash -c "${cmd}")
+    ("${prefix[@]}"; lxc-attach -n "${CT_ID}" -- bash -c -- "${cmd}")
   }
 
   get_uptime() (
     # get_uptime
 
     _get_uptime() { grep -o "^[0-9]\\+" /proc/uptime 2>/dev/null || echo 0; }
-    exec_cbk -s _get_uptime
+    exec_cbk _get_uptime
   )
 
   is_down() {
