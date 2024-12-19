@@ -81,8 +81,8 @@ lxc_deploy() {
   { # Service vars
     declare -r SELF="${FUNCNAME[0]}"
 
-    # If not a file, default to demo.sh script name
-    declare THE_SCRIPT=demo.sh
+    # If not a file, default to lxc-deploy.sh script name
+    declare THE_SCRIPT=lxc-deploy.sh
     grep -q -m 1 -- '.' "${0}" 2>/dev/null && THE_SCRIPT="$(basename -- "${0}")"
   }
 
@@ -304,10 +304,12 @@ lxc_deploy() {
     declare -n _hooks_queue="${1}"
     declare hook_type="${2^^}" func_prefix="${3}"
 
-    declare hooks_list; hooks_list="$(
+    declare hooks_list
+    if hooks_list="$(
       lh_params get "${hook_type}" | text_trim | sed -e 's/,\+$//' \
-      | sed -e 's/,/ /g' | sed -e 's/\s\+/ /g' | tr ' ' '\n' | grep '.'
-    )" && {
+      | sed -e 's/,/ /g' | sed -e 's/\s\+/ /g' | tr ' ' '\n' \
+      | uniq_ordered | grep '.'
+    )"; then
       declare -a hooks
       mapfile -t hooks <<< "${hooks_list}"
 
@@ -324,7 +326,7 @@ lxc_deploy() {
 
         lh_params errbag "Function '${func}' for '${h}' ${hook_type} not found"
       done
-    }
+    fi
   }
 
   load_hooks() {
@@ -600,7 +602,7 @@ lxc_deploy() {
     }
 
     declare path='master/dist/config/git/git-ps1.sh'
-    (set -x; "${cache_update_cmd[@]}"; "${install_cmd[@]}" curl)
+    (set -x; "${cache_update_cmd[@]}"; "${install_cmd[@]}" curl) >/dev/null
     (
       set -x
       {
@@ -639,6 +641,11 @@ to_bool() {
   [[ "${1,,}" =~ ^(1|y|yes|true)$ ]] && { echo true; return; }
   [[ "${1,,}" =~ ^(0|n|no|false)$ ]] && { echo false; return; }
   return 1
+}
+
+# https://unix.stackexchange.com/a/194790
+uniq_ordered() {
+  cat -n <<< "${1-$(cat)}" | sort -k2 -k1n  | uniq -f1 | sort -nk1,1 | cut -f2-
 }
 # .LH_SOURCED: {{/ lib/basic.sh }}
 # .LH_SOURCED: {{ lib/lh-params.sh }}
@@ -971,10 +978,10 @@ lxc_do() (
 
     [[ "${1}" =~ ^(-v|--verbose)$ ]] && { prefix=(set -x); shift; }
 
-    declare cbk="${1}"
+    declare cbk="${1}"; shift
     declare -a args
 
-    declare arg; for arg in "${@:2}"; do
+    declare arg; for arg in "${@}"; do
       args+=("'$(escape_single_quotes "${arg}")'")
     done
 
@@ -989,17 +996,17 @@ lxc_do() (
     [[ $? == 127 ]] && (
       set -x
       lxc-attach -n "${CT_ID}" -- /bin/sh -c \
-        'apk add --update --no-cache bash' 2>/dev/null
+        'apk add --update --no-cache bash 2>/dev/null'
     )
     [[ $? == 127 ]] && (
       set -x
       lxc-attach -n "${CT_ID}" -- /bin/sh -c \
-        'dnf install -y bash' 2>/dev/null
+        'dnf install -y bash 2>/dev/null'
     )
     [[ $? == 127 ]] && (
       set -x
       lxc-attach -n "${CT_ID}" -- /bin/sh -c \
-        'apt-get --version && apt-get update && apt-get install -y bash' 2>/dev/null
+        '(apt-get --version && apt-get update && apt-get install -y bash) >/dev/null'
     )
 
     ("${prefix[@]}"; lxc-attach -n "${CT_ID}" -- bash -c -- "${cmd}")

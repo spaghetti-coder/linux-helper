@@ -81,8 +81,8 @@ lxc_deploy() {
   { # Service vars
     declare -r SELF="${FUNCNAME[0]}"
 
-    # If not a file, default to demo.sh script name
-    declare THE_SCRIPT=demo.sh
+    # If not a file, default to lxc-deploy.sh script name
+    declare THE_SCRIPT=lxc-deploy.sh
     grep -q -m 1 -- '.' "${0}" 2>/dev/null && THE_SCRIPT="$(basename -- "${0}")"
   }
 
@@ -304,10 +304,12 @@ lxc_deploy() {
     declare -n _hooks_queue="${1}"
     declare hook_type="${2^^}" func_prefix="${3}"
 
-    declare hooks_list; hooks_list="$(
+    declare hooks_list
+    if hooks_list="$(
       lh_params get "${hook_type}" | text_trim | sed -e 's/,\+$//' \
-      | sed -e 's/,/ /g' | sed -e 's/\s\+/ /g' | tr ' ' '\n' | grep '.'
-    )" && {
+      | sed -e 's/,/ /g' | sed -e 's/\s\+/ /g' | tr ' ' '\n' \
+      | uniq_ordered | grep '.'
+    )"; then
       declare -a hooks
       mapfile -t hooks <<< "${hooks_list}"
 
@@ -324,7 +326,7 @@ lxc_deploy() {
 
         lh_params errbag "Function '${func}' for '${h}' ${hook_type} not found"
       done
-    }
+    fi
   }
 
   load_hooks() {
@@ -600,7 +602,7 @@ lxc_deploy() {
     }
 
     declare path='master/dist/config/git/git-ps1.sh'
-    (set -x; "${cache_update_cmd[@]}"; "${install_cmd[@]}" curl)
+    (set -x; "${cache_update_cmd[@]}"; "${install_cmd[@]}" curl) >/dev/null
     (
       set -x
       {

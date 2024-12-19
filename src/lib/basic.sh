@@ -12,3 +12,8 @@ to_bool() {
   [[ "${1,,}" =~ ^(0|n|no|false)$ ]] && { echo false; return; }
   return 1
 }
+
+# https://unix.stackexchange.com/a/194790
+uniq_ordered() {
+  cat -n <<< "${1-$(cat)}" | sort -k2 -k1n  | uniq -f1 | sort -nk1,1 | cut -f2-
+}

@@ -57,10 +57,10 @@ lxc_do() (
 
     [[ "${1}" =~ ^(-v|--verbose)$ ]] && { prefix=(set -x); shift; }
 
-    declare cbk="${1}"
+    declare cbk="${1}"; shift
     declare -a args
 
-    declare arg; for arg in "${@:2}"; do
+    declare arg; for arg in "${@}"; do
       args+=("'$(escape_single_quotes "${arg}")'")
     done
 
@@ -75,17 +75,17 @@ lxc_do() (
     [[ $? == 127 ]] && (
       set -x
       lxc-attach -n "${CT_ID}" -- /bin/sh -c \
-        'apk add --update --no-cache bash' 2>/dev/null
+        'apk add --update --no-cache bash 2>/dev/null'
     )
     [[ $? == 127 ]] && (
       set -x
       lxc-attach -n "${CT_ID}" -- /bin/sh -c \
-        'dnf install -y bash' 2>/dev/null
+        'dnf install -y bash 2>/dev/null'
     )
     [[ $? == 127 ]] && (
       set -x
       lxc-attach -n "${CT_ID}" -- /bin/sh -c \
-        'apt-get --version && apt-get update && apt-get install -y bash' 2>/dev/null
+        '(apt-get --version && apt-get update && apt-get install -y bash) >/dev/null'
     )
 
     ("${prefix[@]}"; lxc-attach -n "${CT_ID}" -- bash -c -- "${cmd}")
