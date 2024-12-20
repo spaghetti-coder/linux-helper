@@ -151,7 +151,7 @@ _BASHRCD_FILES="$(
       mkdir -p -- "${BASHRCD_HOME}"
       tee -- "${INIT_PATH}" <<< "${CONFIG}" >/dev/null
     ) && (
-      grep -qFx -- "${INIT_PATH_ENTRY}" "${HOME}/.bashrc" && return
+      grep -qFx -- "${INIT_PATH_ENTRY}" "${HOME}/.bashrc" 2>/dev/null && return
       set -x
       tee -a -- "${HOME}/.bashrc" <<< "${INIT_PATH_ENTRY}" >/dev/null
     )
