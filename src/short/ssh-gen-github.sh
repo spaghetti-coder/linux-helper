@@ -4,8 +4,8 @@ ssh_gen_github() (
   { # Service vars
     # declare -r SELF="${FUNCNAME[0]}"
 
-    # If not a file, default to demo.sh script name
-    declare THE_SCRIPT="ssh-gen-vc.sh"
+    # If not a file, default to ssh-gen-github script name
+    declare THE_SCRIPT="ssh-gen-github.sh"
     grep -q -m 1 -- '.' "${0}" 2>/dev/null && THE_SCRIPT="$(basename -- "${0}")"
   }
 

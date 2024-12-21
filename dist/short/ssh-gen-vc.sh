@@ -4,7 +4,7 @@ ssh_gen_vc() (
   { # Service vars
     declare -r SELF="${FUNCNAME[0]}"
 
-    # If not a file, default to demo.sh script name
+    # If not a file, default to ssh-gen-vc.sh script name
     declare THE_SCRIPT="ssh-gen-vc.sh"
     grep -q -m 1 -- '.' "${0}" 2>/dev/null && THE_SCRIPT="$(basename -- "${0}")"
   }
