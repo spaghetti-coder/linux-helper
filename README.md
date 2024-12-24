@@ -422,6 +422,29 @@
   
 </details>
 
+<a id="config/git/gitconfig.extra.ini"></a>
+<details><summary>config/git/gitconfig.extra.ini</summary>
+
+  [Link to the section](#config/git/gitconfig.extra.ini)
+
+  View [`gitconfig.extra.ini`](https://raw.githubusercontent.com/spaghetti-coder/linux-helper/master/src/asset/conf/git/gitconfig.extra.ini)
+  
+  **AD HOC:**
+
+  ~~~sh
+  # VERSION can be changed to any treeish
+  (
+    VERSION='master'
+    curl -V &>/dev/null && dl_tool=(curl -fsSL) || dl_tool=(wget -qO-)
+    set -x; "${dl_tool[@]}" "https://raw.githubusercontent.com/spaghetti-coder/linux-helper/${VERSION:-master}/src/asset/conf/git/gitconfig.extra.ini" \
+    || "${dl_tool[@]}" "https://bitbucket.org/kvedenskii/linux-scripts/raw/${VERSION:-master}/src/asset/conf/git/gitconfig.extra.ini"
+  ) | (set -x; tee ~/.gitconfig.lh-extra.ini >/dev/null) && {
+    git config --global --get-all include.path | grep -qFx '~/.gitconfig.lh-extra.ini' \
+    || (set -x; git config --global --add include.path '~/.gitconfig.lh-extra.ini')
+  }
+  ~~~
+</details>
+
 <a id="config/tmux/tmux-default.sh"></a>
 <details><summary>config/tmux/tmux-default.sh</summary>
 
