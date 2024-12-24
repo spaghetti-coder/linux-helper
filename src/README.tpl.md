@@ -23,6 +23,26 @@
 <!-- .LH_DETAILS:config/bash/bashrcd.sh -->
 <!-- .LH_DETAILS:config/git/git-ps1.sh -->
 
+<a id="config/git/gitconfig.extra.ini"></a>
+<details><summary>config/git/gitconfig.extra.ini</summary>
+
+  [Link to the section](#config/git/gitconfig.extra.ini)
+
+  View [`gitconfig.extra.ini`](@@BASE_RAW_URL/master/src/asset/conf/git/gitconfig.extra.ini)
+  
+  **AD HOC:**
+
+  ~~~sh
+  # VERSION can be changed to any treeish
+  (
+    VERSION='master'
+    curl -V &>/dev/null && dl_tool=(curl -sL) || dl_tool=(wget -qO-)
+    set -x; "${dl_tool[@]}" "@@BASE_RAW_URL/${VERSION:-master}/src/asset/conf/git/gitconfig.extra.ini" \
+    || "${dl_tool[@]}" "@@BASE_RAW_URL_ALT/${VERSION:-master}/src/asset/conf/git/gitconfig.extra.ini"
+  ) | (set -x; tee ~/.gitconfig.extra.ini >/dev/null && git config --global include.path '~/.gitconfig.extra.ini')
+  ~~~
+</details>
+
 <a id="config/tmux/tmux-default.sh"></a>
 <details><summary>config/tmux/tmux-default.sh</summary>
 
