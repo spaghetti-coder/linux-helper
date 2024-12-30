@@ -1,0 +1,42 @@
+---
+#
+# NPM_SERVICE_NAME=nginx-proxy-manager
+# NPM_VERSION=latest
+# NPM_CONTAINER_NAME=nginx-proxy-manager
+# NPM_PORT_HTTP=80
+# NPM_PORT_HTTPS=443
+# NPM_PORT_ADMIN=81
+# NPM_UID=0
+# NPM_GID=0
+# NPM_VOLUME_DATA=./data
+# NPM_VOLUME_LETSENCRYPT=./letsencrypt
+#
+services:
+  '{{ NPM_SERVICE_NAME }}':
+    # https://hub.docker.com/r/jc21/nginx-proxy-manager/tags
+    image: 'jc21/nginx-proxy-manager:{{ NPM_VERSION }}'
+    container_name: '{{ NPM_CONTAINER_NAME }}'
+    restart: unless-stopped
+    ports: # {{ NPM_PORTS }}
+      - '{{ NPM_PORT_HTTP }}:80'    # Public HTTP Port
+      - '{{ NPM_PORT_HTTPS }}:443'  # Public HTTPS Port
+      - '{{ NPM_PORT_ADMIN }}:81'   # Admin Web Port
+      # {{ [+NPM_PORTS] }}
+      #
+      # Add any other Stream port you want to expose
+      # - '21:21' # FTP
+    environment: # {{ NPM_ENVIRONMENT }}
+      - 'PUID={{ NPM_UID }}'
+      - 'PGID={{ NPM_GID }}'
+      # {{ [+NPM_ENVIRONMENT] }}
+      #
+      # Uncomment this if you want to change the location of
+      # the SQLite DB file within the container
+      # DB_SQLITE_FILE: "/data/database.sqlite"
+      # Uncomment this if IPv6 is not enabled on your host
+      # DISABLE_IPV6: 'true'
+    volumes: # {{ NPM_VOLUMES }}
+      - '{{ NPM_VOLUME_DATA }}:/data'
+      - '{{ NPM_VOLUME_LETSENCRYPT }}:/etc/letsencrypt'
+      # {{ [+NPM_VOLUMES] }}
+    # {{ {+NPM_OPTS} }}

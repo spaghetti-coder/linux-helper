@@ -1,0 +1,21 @@
+---
+#
+# NGINX_PROXY_SERVICE_NAME=nginx-proxy
+# NGINX_PROXY_VERSION=latest
+# NGINX_PROXY_CONTAINER_NAME=nginx-proxy
+# NGINX_PROXY_PORT_HTTP=80
+# NGINX_PROXY_VOLUME_DOCKER_SOCK=/var/run/docker.sock
+#
+services:
+  '{{ NGINX_PROXY_SERVICE_NAME }}':
+    # https://hub.docker.com/r/jwilder/nginx-proxy/tags
+    image: 'jwilder/nginx-proxy:{{ NGINX_PROXY_VERSION }}'
+    container_name: '{{ NGINX_PROXY_CONTAINER_NAME }}'
+    restart: unless-stopped
+    ports: # {{ NGINX_PROXY_PORTS }}
+      - '{{ NGINX_PROXY_PORT_HTTP }}:80'
+      # {{ [+NGINX_PROXY_PORTS] }}
+    volumes: # {{ NGINX_PROXY_VOLUMES }}
+      - '{{ NGINX_PROXY_VOLUME_DOCKER_SOCK }}:/tmp/docker.sock:ro'
+      # {{ [+NGINX_PROXY_VOLUMES] }}
+    # {{ {+NGINX_PROXY_OPTS} }}

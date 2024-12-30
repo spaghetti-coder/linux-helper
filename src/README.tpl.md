@@ -4,8 +4,9 @@
 
 * [Tools](#tools)
 * [Config](#config)
-* [Proxmox](#proxmox)
 * [Libraries](#libraries)
+* [Helpers](#helpers)
+* [Proxmox](#proxmox)
 * [Development](#development)
 
 ## Tools
@@ -69,6 +70,49 @@
 
 [To top]
 
+## Helpers
+
+<a id="helper/docker-template.sh"></a>
+<details><summary>helper/docker-template.sh</summary>
+
+  [Link to the section](#helper/docker-template.sh)
+
+  Merge and compile docker-compose template(s).
+
+  **Usage demo**:
+
+  See [`docker-compose.npm.tpl.yaml`](@@BASE_RAW_URL/master/src/asset/docker/docker-compose.npm.tpl.yaml) and [`docker-compose.nginx-proxy.tpl.yaml`](@@BASE_RAW_URL/master/src/asset/docker/docker-compose.nginx-proxy.tpl.yaml)
+
+  ~~~sh
+  # LH_VERSION can be changed to any treeish
+  bash -- <(
+    LH_VERSION='master'
+    curl -V &>/dev/null && dl_tool=(curl -fsSL) || dl_tool=(wget -qO-)
+    set -x; "${dl_tool[@]}" "@@BASE_RAW_URL/${LH_VERSION:-master}/dist/helper/docker-template.sh" \
+    || "${dl_tool[@]}" "@@BASE_RAW_URL_ALT/${LH_VERSION:-master}/dist/helper/docker-template.sh"
+  ) @npm @nginx-proxy \ # merge npm and nginx-proxy templates
+    NPM_UID 1000 \
+    NPM_GID=1000 \ # Same as 'NPM_GID 1000'
+    +NPM_ENVIRONMENT 'VIRTUAL_HOST=foo.bar' \
+    +NPM_ENVIRONMENT='VIRTUAL_PORT=8080' \ # Same as +'NPM_ENVIRONMENT=VIRTUAL_PORT=8080'
+    -NPM_PORT_HTTP \ # Remove NPM_PORT_* lines
+    -NPM_PORT_HTTPS \
+    -NPM_PORT_ADMIN \
+    -NPM_PORTS \ # Remove ports node to avoid invalid docker-compose file
+    +NPM_OPTS network_mode=host \ # Same as +'NPM_OPTS network_mode host', +'NPM_OPTS=network_mode=host'
+    -NGINX_PROXY_PORT_HTTP=8080
+    -NGINX_PROXY_PORTS
+  ~~~
+</details>  
+
+[To top]
+
+## Libraries
+
+TODO
+
+[To top]
+
 ## Proxmox
 
 <a id="pve/bin/deploy-lxc.sh"></a>
@@ -90,12 +134,6 @@
   ~~~
   <!-- .LH_HELP:pve/bin/deploy-lxc.sh -->
 </details>  
-
-[To top]
-
-## Libraries
-
-TODO
 
 [To top]
 
