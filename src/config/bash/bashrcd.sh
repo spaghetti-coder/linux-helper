@@ -66,9 +66,13 @@ bashrcd() (
       mkdir -p -- "${BASHRCD_HOME}"
       tee -- "${INIT_PATH}" <<< "${CONFIG}" >/dev/null
     ) && (
-      grep -qFx -- "${INIT_PATH_ENTRY}" "${HOME}/.bashrc" 2>/dev/null && return
+      grep -qFx -- "${INIT_PATH_ENTRY}" "${HOME}/.bashrc" 2>/dev/null && exit
       set -x
       tee -a -- "${HOME}/.bashrc" <<< "${INIT_PATH_ENTRY}" >/dev/null
+    ) && (
+      grep -qF -- "/.bashrc" "${HOME}/.bash_profile" 2>/dev/null && exit
+      set -x
+      tee -a -- "${HOME}/.bash_profile" <<< ". ~/.bashrc" >/dev/null
     )
   }
 
