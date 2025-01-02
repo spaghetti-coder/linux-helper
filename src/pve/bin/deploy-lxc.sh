@@ -528,9 +528,14 @@ deploy_lxc() {
 
   create_container() {
     declare tpl_file="${1}"
+    declare CT_ID; CT_ID="$(basename -- "$(lh_params get ID)")"
 
+    # Cleanup from the previous deployments
+    (set -x; cd /var/lib/vz/snippets && rm -f -- "${CT_ID}.hook.sh")
+
+    # Give it the bare minimum of settings
     declare -a create_cmd; create_cmd=(
-      pct create "$(lh_params get ID)" "${tpl_file}"
+      pct create "${CT_ID}" "${tpl_file}"
       --password "$(lh_params get PASS)"
       --storage "$(lh_params get STORAGE)"
       --unprivileged "$("$(lh_params get PRIVILEGED)"; echo $?)"

@@ -528,9 +528,14 @@ deploy_lxc() {
 
   create_container() {
     declare tpl_file="${1}"
+    declare CT_ID; CT_ID="$(basename -- "$(lh_params get ID)")"
 
+    # Cleanup from the previous deployments
+    (set -x; cd /var/lib/vz/snippets && rm -f -- "${CT_ID}.hook.sh")
+
+    # Give it the bare minimum of settings
     declare -a create_cmd; create_cmd=(
-      pct create "$(lh_params get ID)" "${tpl_file}"
+      pct create "${CT_ID}" "${tpl_file}"
       --password "$(lh_params get PASS)"
       --storage "$(lh_params get STORAGE)"
       --unprivileged "$("$(lh_params get PRIVILEGED)"; echo $?)"
@@ -1540,6 +1545,79 @@ lxc_do() (
     ' || echo 0
   )
 
+  hookscript() {
+    # ensure_hook [FUNC...] || { ERR_BLOCK }
+    # test() { declare CT_ID="${1}" PHASE="${2}"; echo "${CT_ID} ${PHASE}" >&2; }
+    # ensure_hook test
+    #
+    # Hookscript info:
+    #   https://codingpackets.com/blog/proxmox-hook-script-port-mirror/#hook-scripts
+
+    declare -a stack
+    declare -A map
+    declare f; for f in "${@}"; do
+      map["${f}"]="$(declare -f -- "${f}")" || return
+      stack+=("${f}")
+    done
+
+    [[ ${#stack[@]} -lt 1 ]] && return
+
+    declare inc_file; inc_file="$(
+      # shellcheck disable=SC2016
+      text_nice '
+        # $1 contains CT_ID
+        # $2 contains the container execution phase, one of:
+        #   * pre-start
+        #   * post-start
+        #   * pre-stop
+        #   * post-stop
+        # More on the subject:
+        #   https://codingpackets.com/blog/proxmox-hook-script-port-mirror/#hook-scripts
+       ,
+        _lh_hookstack() {
+          '"$(printf -- '%s "${@}"\n' "${stack[@]}" | sed 's/^/,  /')"'
+        }
+       ,
+        '"$(printf -- '%s\n' "${map[@]}" | sed 's/^/,/')"'
+       ,
+        _lh_hookstack "${@}"
+      '
+    )"
+
+    declare storage_path; storage_path="$(_storage_path)/hookscript"
+
+    declare INC_PATH="${storage_path}/${CT_ID}.lh-inc.sh"
+    declare HOOK_PATH="/var/lib/vz/snippets/${CT_ID}.hook.sh"
+
+    # Create inc file
+    ( cat <<< "${inc_file}" | {
+      set -x
+
+      mkdir -p "${storage_path}" \
+      && tee -- "${INC_PATH}" >/dev/null
+    }) || return
+
+    # Ensure shebanged hook file
+    declare hook_shebang='#!/usr/bin/env bash'
+    head -n 1 -- "${HOOK_PATH}" 2>/dev/null | grep -qFx -- "${hook_shebang}" || (
+      declare tail; tail="$(tail -n +2 "${HOOK_PATH}" 2>/dev/null)"
+      set -x
+      tee -- "${HOOK_PATH}" <<< "${hook_shebang}${tail:+$'\n'}${tail}" >/dev/null
+    ) || return
+
+    # Ensure hook file is executable
+    (set -x; chmod +x -- "${HOOK_PATH}") || return
+
+    # Ensure inc file sourced
+    declare inc_rex; inc_rex='\s*\.\s\+'"$(escape_sed_expr "'${INC_PATH}'")"'\s*'
+    grep -qx -- "${inc_rex}"'\s*' "${HOOK_PATH}" || (
+      declare hook_fname; hook_fname="$(basename -- "${HOOK_PATH}")"
+      set -x
+      tee -a -- "${HOOK_PATH}" <<< ". '${INC_PATH}'" >/dev/null \
+      && pct set "${CT_ID}" --hookscript "local:snippets/${hook_fname}"
+    ) || return
+  }
+
   is_down() {
     # is_down && { IS_DOWN_BLOCK } || { IS_UP_BLOCK }
 
@@ -1571,6 +1649,10 @@ lxc_do() (
     echo '\s*'"$(escape_sed_expr "${opt}")"'\s*[:=]\s*'"$(escape_sed_expr "${val}")"'\s*'
   }
 
+  _storage_path() {
+    echo /root/linux-helper/lxc
+  }
+
   # ^^^^^^^^^ #
   # FUNCTIONS #
   #############
@@ -1588,6 +1670,7 @@ lxc_do() (
     ensure_up
     exec_cbk
     get_uptime
+    hookscript
     is_down
     is_up
   )
