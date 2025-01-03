@@ -881,8 +881,14 @@ detect_os_type() {
   # Where OS_ID_LIKE:VERSION_ID_LIKE is closest supported upstream
   # if OS_ID is not supported
 
-  declare min_supported=(ubuntu:22.04 debian:12 centos:8 rhel:8 alpine:3.20)
-  declare -a fallback_priority=(ubuntu debian centos rhel)
+  declare -a min_supported=(
+    # Ordered by upstrem priority
+    ubuntu:22.04
+    debian:12
+    centos:8
+    rhel:8
+    alpine:3.20
+  )
 
   [[ -n "${1+x}" ]] && [[ -n "${2+x}" ]] && {
     # Check supported version, called in recursion
@@ -920,6 +926,49 @@ detect_os_type() {
     echo "(${SELF}) Unsupported ${id} version: '${vid}'" >&2
     return 1
   fi
+
+  declare UPSTREAM_ID
+  declare id_likes; id_likes="$(
+    . <(cat <<< "${OS_INFO}")
+    tr ' ' '\n' <<< "${ID_LIKE}" | grep '.\+'
+  )" && UPSTREAM_ID="$(
+    set -o pipefail
+
+    printf -- '%s\n' "${min_supported[@]}" \
+    | sed -e 's/^\([^:]\+\):.*/\1/' \
+    | grep -Fxf <(printf -- '%s\n' "${id_likes}") \
+    | head -n 1
+  )" || {
+    echo "(${SELF}) Unsupported OS: '${ID_VID}'" >&2
+    return 1
+  }
+
+  declare UPSTREAM_VID
+  if [[ 'centos' == "${UPSTREAM_ID}" ]]; then
+    # Rely on same versioning as in upstream
+    UPSTREAM_VID="${vid}"
+  elif [[ 'ubuntu' == "${UPSTREAM_ID}" ]]; then
+    # Attempt to convert code name to version
+    declare -A map=(
+      [jammy]=22.04
+      [noble]=24.04
+    )
+
+    declare ubu_codename; ubu_codename="$(
+      . <(cat <<< "${OS_INFO}")
+      printf -- '%s\n' "${!map[@]}" | grep -Fx -m 1 -- "${UBUNTU_CODENAME}"
+    )" && {
+      UPSTREAM_VID="${map[${ubu_codename}]}"
+    }
+  fi
+
+  "${SELF}" "${UPSTREAM_ID}" "${UPSTREAM_VID-0.0.0}" && {
+    echo "${ID_VID} ${UPSTREAM_ID}:${UPSTREAM_VID}"
+    return
+  }
+
+  echo "(${SELF}) Unsuported OS: ${ID_VID}" >&2
+  return 1
 }
 # .LH_SOURCED: {{/ lib/system.sh }}
 
