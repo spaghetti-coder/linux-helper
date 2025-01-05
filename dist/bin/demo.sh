@@ -25,17 +25,17 @@ demo() (
     lh_params_default_DOMAIN() { hostname -f; }
   }
 
-  print_usage() { echo "
+  print_usage() { text_nice "
     ${THE_SCRIPT} [--ask] [--age AGE='$(lh_params default-string AGE)'] [--domain DOMAIN=\"$(lh_params default-string DOMAIN)\"] [--] NAME
   "; }
 
   print_help() { text_nice "
     Just a demo boilerplate project to get user info.
-   ,
+
     USAGE:
     =====
-    $(print_usage)
-   ,
+    $(print_usage | sed 's/^/,/')
+
     PARAMS:
     ======
     NAME    Person's name
@@ -43,12 +43,12 @@ demo() (
     --ask     Provoke a prompt for all params
     --age     Person's age
     --domain  Person's domain
-   ,
+
     DEMO:
     ====
     # With all defaults
     ${THE_SCRIPT} Spaghetti
-   ,
+
     # Provie info interactively
     ${THE_SCRIPT} --ask
   "; }
@@ -64,7 +64,7 @@ demo() (
       case "${param}" in
         --            ) endopts=true ;;
         -\?|-h|--help ) print_help; exit ;;
-        --usage       ) print_usage | text_nice; exit ;;
+        --usage       ) print_usage; exit ;;
         --age         ) lh_params set AGE "${@:2:1}"; shift ;;
         --ask         ) lh_params set ASK true ;;
         -*            ) lh_params unsupported "${1}" ;;
@@ -375,7 +375,11 @@ text_ltrim() { sed -e 's/^\s\+//' <<< "${1-$(cat)}"; }
 text_rtrim() { sed -e 's/\s\+$//' <<< "${1-$(cat)}"; }
 text_trim() { text_ltrim <<< "${1-$(cat)}" | text_rtrim; }
 text_rmblank() { grep -v '^\s*$' <<< "${1-$(cat)}"; return 0; }
-text_nice() { text_trim <<< "${1-$(cat)}" | text_rmblank | sed -e 's/^,//'; }
+text_nice() {
+  text_trim <<< "${1-$(cat)}" \
+  | sed -e '/^.\+$/,$!d' | tac \
+  | sed -e '/^.\+$/,$!d' -e 's/^,//' | tac
+}
 # .LH_SOURCED: {{/ lib/text.sh }}
 
 # .LH_NOSOURCE

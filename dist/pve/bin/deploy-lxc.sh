@@ -110,7 +110,7 @@ deploy_lxc() {
     ubuntu
   "; }
 
-  print_usage() { echo "
+  print_usage() { text_nice "
     ${THE_SCRIPT} [ID] [--ask] [--storage STORAGE] [--template TEMPLATE='$(lh_params default-string TEMPLATE)'] \\
    ,  [--disk DISK] [--ram RAM] [--swap SWAP] [--cores CORES] [--privileged] [--onboot] \\
    ,  [--ostype OSTYPE] [--pass PASS] [--pass-envvar PASS_ENVVAR='$(lh_params default-string PASS_ENVVAR)'] \\
@@ -122,11 +122,11 @@ deploy_lxc() {
   print_help() { text_nice "
     Deploy LXC container using self-contained script. Likely supported:
     $(supported_dists | sed -e 's/^/* /')
-   ,
+
     USAGE:
     =====
-    $(print_usage)
-   ,
+    $(print_usage | sed 's/^/,/')
+
     PARAMS:
     ======
     ID          Numeric LXC container ID. Defaults to automanaged
@@ -163,16 +163,16 @@ deploy_lxc() {
    ,                will be started and stopped automatically. Can be set multiple
    ,                times or space separated. The function must be accessible in
    ,                the configuration file.
-   ,
+
     PROFILES:
     ========
     $(profiles_list true | sed -e 's/^/* /')
-   ,
+
     DEMO:
     ====
     # Edit configuration section in ${THE_SCRIPT} and run it to deploy LXC
     ${THE_SCRIPT}
-   ,
+
     # Run overriding some configs in the configuration file and in
     # interactive mode
     LXC_PASS=qwerty ${THE_SCRIPT} --ask --privileged --disk 45 \\
@@ -230,7 +230,7 @@ deploy_lxc() {
     while [[ ${#} -gt 0 ]]; do
       case "${1}" in
         -\?|-h|--help       ) print_help; exit ;;
-        --usage             ) print_usage | text_nice; exit ;;
+        --usage             ) print_usage; exit ;;
         --ask               ) lh_params set ASK true ;;
         --storage           ) lh_params set STORAGE "${@:2:1}"; shift ;;
         --template          ) lh_params set TEMPLATE "${@:2:1}"; shift ;;
@@ -1271,7 +1271,11 @@ text_ltrim() { sed -e 's/^\s\+//' <<< "${1-$(cat)}"; }
 text_rtrim() { sed -e 's/\s\+$//' <<< "${1-$(cat)}"; }
 text_trim() { text_ltrim <<< "${1-$(cat)}" | text_rtrim; }
 text_rmblank() { grep -v '^\s*$' <<< "${1-$(cat)}"; return 0; }
-text_nice() { text_trim <<< "${1-$(cat)}" | text_rmblank | sed -e 's/^,//'; }
+text_nice() {
+  text_trim <<< "${1-$(cat)}" \
+  | sed -e '/^.\+$/,$!d' | tac \
+  | sed -e '/^.\+$/,$!d' -e 's/^,//' | tac
+}
 # .LH_SOURCED: {{/ lib/text.sh }}
 # .LH_SOURCED: {{ pve/lib/lxc-do.sh }}
 # shellcheck disable=SC2317
@@ -1573,13 +1577,13 @@ lxc_do() (
         #   * post-stop
         # More on the subject:
         #   https://codingpackets.com/blog/proxmox-hook-script-port-mirror/#hook-scripts
-       ,
+
         _lh_hookstack() {
           '"$(printf -- '%s "${@}"\n' "${stack[@]}" | sed 's/^/,  /')"'
         }
-       ,
+
         '"$(printf -- '%s\n' "${map[@]}" | sed 's/^/,/')"'
-       ,
+
         _lh_hookstack "${@}"
       '
     )"

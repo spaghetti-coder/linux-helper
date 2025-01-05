@@ -299,13 +299,13 @@ lxc_do() (
         #   * post-stop
         # More on the subject:
         #   https://codingpackets.com/blog/proxmox-hook-script-port-mirror/#hook-scripts
-       ,
+
         _lh_hookstack() {
           '"$(printf -- '%s "${@}"\n' "${stack[@]}" | sed 's/^/,  /')"'
         }
-       ,
+
         '"$(printf -- '%s\n' "${map[@]}" | sed 's/^/,/')"'
-       ,
+
         _lh_hookstack "${@}"
       '
     )"

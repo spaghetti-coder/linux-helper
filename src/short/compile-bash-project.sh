@@ -24,7 +24,7 @@ compile_bash_project() (
     lh_params_set_NO_EXT() { NO_EXTS+=("${1}"); }
   }
 
-  print_usage() { echo "
+  print_usage() { text_nice "
     ${THE_SCRIPT} [--ext EXT='${DEFAULT_EXT}']... [--no-ext NO_EXT]... [--] \\
    ,  SRC_DIR DEST_DIR
   "; }
@@ -39,11 +39,11 @@ compile_bash_project() (
     * Sourced code is wrapped with comment. To avoid wrapping use comment
    ,  '# .LH_SOURCE_NW:path/to/lib.sh' or '# .LH_SOURCE_NOW_WRAP:path/to/lib.sh'
     * Shebang from the sourced files are removed in the resulting file
-   ,
+
     USAGE:
     =====
-    $(print_usage)
-   ,
+    $(print_usage | sed 's/^/,/')
+
     PARAMS:
     ======
     SRC_DIR     Source directory
@@ -51,7 +51,7 @@ compile_bash_project() (
     --          End of options
     --ext       Array of extension patterns of files to be compiled
     --no-ext    Array of exclude extension patterns
-   ,
+
     DEMO:
     ====
     # Compile all '.sh' and '.bash' files under 'src' directory to 'dest'
@@ -72,7 +72,7 @@ compile_bash_project() (
       case "${param}" in
         --            ) endopts=true ;;
         -\?|-h|--help ) print_help; exit ;;
-        --usage       ) print_usage | text_nice; exit ;;
+        --usage       ) print_usage; exit ;;
         --ext         ) lh_params set EXT "${@:2:1}"; shift ;;
         --no-ext      ) lh_params set NO_EXT "${@:2:1}"; shift ;;
         -*            ) lh_params unsupported "${1}" ;;

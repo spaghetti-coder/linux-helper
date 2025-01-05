@@ -47,7 +47,7 @@ ssh_gen() (
     [conffile_entry]=false
   )
 
-  print_usage() { echo "
+  print_usage() { text_nice "
     ${THE_SCRIPT} [--ask] [--host HOST=$(lh_params default-string HOST)] [--port PORT='$(lh_params default-string PORT)'] \\
    ,  [--comment COMMENT=\"$(lh_params default-string COMMENT)\"] [--dirname DIRNAME=$(lh_params default-string DIRNAME)] \\
    ,  [--filename FILENAME=$(lh_params default-string FILENAME)] [--dest-dir DEST_DIR] [--] HOSTNAME USER
@@ -62,11 +62,11 @@ ssh_gen() (
 
     text_nice "
       Generate private and public key pair and manage Include entry in ~/.ssh/config.
-     ,
+
       USAGE:
       =====
-      $(print_usage)
-     ,
+      $(print_usage | sed 's/^/,/')
+
       PARAMS:
       ======
       HOSTNAME  The actual SSH host. With values like '%h' (the target hostname)
@@ -82,16 +82,16 @@ ssh_gen() (
       --dest-dir  Custom destination directory. In case the option is provided
      ,            --dirname option is ignored and Include entry won't be created in
      ,            ~/.ssh/config file. The directory will be autocreated
-     ,
+
       DEMO:
       ====
       # Generate with all defaults to PK file ~/.ssh/${HOSTNAME}/user
       ${THE_SCRIPT} ${HOSTNAME} user
-     ,
+
       # Generate to ~/.ssh/${CUSTOM_DIR}/${CUSTOM_FILE} instead of ~/.ssh/%h/${USER}
      ${THE_SCRIPT} --host 'serv.com *.serv.com' --comment Zoo --dirname '${CUSTOM_DIR}' \\
      ,  --filename '${CUSTOM_FILE}' -- '%h' ${USER}
-     ,
+
       # Generate interactively to ~/my/certs/${USER} (will be prompted for params).
       ${THE_SCRIPT} --ask --dest-dir ~/my/certs/${USER}
     "
@@ -108,7 +108,7 @@ ssh_gen() (
       case "${param}" in
         --            ) endopts=true ;;
         -\?|-h|--help ) print_help; exit ;;
-        --usage       ) print_usage | text_nice; exit ;;
+        --usage       ) print_usage; exit ;;
         --ask         ) lh_params set ASK true ;;
         --host        ) lh_params set HOST "${@:2:1}"; shift ;;
         --port        ) lh_params set PORT "${@:2:1}"; shift ;;
@@ -630,7 +630,11 @@ text_ltrim() { sed -e 's/^\s\+//' <<< "${1-$(cat)}"; }
 text_rtrim() { sed -e 's/\s\+$//' <<< "${1-$(cat)}"; }
 text_trim() { text_ltrim <<< "${1-$(cat)}" | text_rtrim; }
 text_rmblank() { grep -v '^\s*$' <<< "${1-$(cat)}"; return 0; }
-text_nice() { text_trim <<< "${1-$(cat)}" | text_rmblank | sed -e 's/^,//'; }
+text_nice() {
+  text_trim <<< "${1-$(cat)}" \
+  | sed -e '/^.\+$/,$!d' | tac \
+  | sed -e '/^.\+$/,$!d' -e 's/^,//' | tac
+}
 # .LH_SOURCED: {{/ lib/text.sh }}
 
 # .LH_NOSOURCE

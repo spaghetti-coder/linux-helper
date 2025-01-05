@@ -16,7 +16,7 @@ config_tmux_plugins() (
   ")"
 
   # shellcheck disable=SC2317
-  print_usage() { echo "
+  print_usage() { text_nice "
     ${THE_SCRIPT} [--] [CONFD=\"$(lh_params default-string CONFD)\"]
   "; }
 
@@ -25,29 +25,29 @@ config_tmux_plugins() (
     Generate plugins tmux configuration preset and source it to ~/.tmux.conf file.
     tmux and git are required to be installed for this script. The configs are with
     the following content:
-   ,
+
     \`\`\`
     ${CONFIG}
     \`\`\`
-   ,
+
     \`\`\`
     ${CONFIG_APPENDIX}
     \`\`\`
-   ,
+
     USAGE:
     =====
-    $(print_usage)
-   ,
+    $(print_usage | sed 's/^/,/')
+
     PARAMS:
     ======
     CONFD   Confd directory to store tmux custom configurations
     --      End of options
-   ,
+
     DEMO:
     ====
     # Generate with all defaults to \"$(lh_params default-string CONFD)\"/{appendix,plugins}.conf
     ${THE_SCRIPT}
-   ,
+
     # Generate to /etc/tmux/{appendix,plugins}.conf. Requires sudo for non-root user
     sudo ${THE_SCRIPT} /etc/tmux
   "; }

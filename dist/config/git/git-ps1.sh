@@ -33,15 +33,15 @@ PS1="$(
 .LH_HEREDOC
 )"
 
-  print_usage() { echo "${THE_SCRIPT}"; }
+  print_usage() { text_nice "${THE_SCRIPT}"; }
 
   print_help() { text_nice "
     Cusomize bash PS1 prompt for git
-   ,
+
     USAGE:
     =====
-    $(print_usage)
-   ,
+    $(print_usage | sed 's/^/,/')
+
     DEMO:
     ====
     ${THE_SCRIPT}
@@ -56,7 +56,7 @@ PS1="$(
       case "${param}" in
         --            ) endopts=true ;;
         -\?|-h|--help ) print_help; exit ;;
-        --usage       ) print_usage | text_nice; exit ;;
+        --usage       ) print_usage; exit ;;
         *             ) lh_params unsupported "${1}" ;;
       esac
 
@@ -120,15 +120,15 @@ _BASHRCD_FILES="$(
 .LH_HEREDOC
 )"
 
-  print_usage() { echo "${THE_SCRIPT}"; }
+  print_usage() { text_nice "${THE_SCRIPT}"; }
 
   print_help() { text_nice "
     Create ~/.bashrc.d directory and source all its '*.sh' scripts to ~/.bashrc
-   ,
+
     USAGE:
     =====
-    $(print_usage)
-   ,
+    $(print_usage | sed 's/^/,/')
+
     DEMO:
     ====
     ${THE_SCRIPT}
@@ -143,7 +143,7 @@ _BASHRCD_FILES="$(
       case "${param}" in
         --            ) endopts=true ;;
         -\?|-h|--help ) print_help; exit ;;
-        --usage       ) print_usage | text_nice; exit ;;
+        --usage       ) print_usage; exit ;;
         *             ) lh_params unsupported "${1}" ;;
       esac
 
@@ -496,7 +496,11 @@ text_ltrim() { sed -e 's/^\s\+//' <<< "${1-$(cat)}"; }
 text_rtrim() { sed -e 's/\s\+$//' <<< "${1-$(cat)}"; }
 text_trim() { text_ltrim <<< "${1-$(cat)}" | text_rtrim; }
 text_rmblank() { grep -v '^\s*$' <<< "${1-$(cat)}"; return 0; }
-text_nice() { text_trim <<< "${1-$(cat)}" | text_rmblank | sed -e 's/^,//'; }
+text_nice() {
+  text_trim <<< "${1-$(cat)}" \
+  | sed -e '/^.\+$/,$!d' | tac \
+  | sed -e '/^.\+$/,$!d' -e 's/^,//' | tac
+}
 # .LH_SOURCED: {{/ lib/text.sh }}
 
 # .LH_SOURCED: {{/ config/bash/bashrcd.sh }}

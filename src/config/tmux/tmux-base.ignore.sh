@@ -49,7 +49,7 @@ _config_tmux_base_parse_params() {
     case "${param}" in
       --            ) endopts=true ;;
       -\?|-h|--help ) print_help; exit ;;
-      --usage       ) print_usage | text_nice; exit ;;
+      --usage       ) print_usage; exit ;;
       -*            ) lh_params unsupported "${1}" ;;
       *             ) args+=("${1}") ;;
     esac

@@ -18,7 +18,7 @@ ssh_gen_github() (
 
   declare -a DOWNSTREAM=(ssh_gen_vc "${DEFAULTS[host]}")
 
-  print_usage() { echo "
+  print_usage() { text_nice "
     ${THE_SCRIPT} [--ask] [--host HOST='${DEFAULTS[host]}'] \\
     ,  [--comment COMMENT=\"${DEFAULTS[comment]}\"] [--] [ACCOUNT='${DEFAULTS[account]}']
   "; }
@@ -29,11 +29,11 @@ ssh_gen_github() (
     text_nice "
       github.com centric shortcut of ssh-gen.sh tool. Generate private and public key
       pair and configure ~/.ssh/config file to use them.
-     ,
+
       USAGE:
       =====
-      $(print_usage)
-     ,
+      $(print_usage | sed 's/^/,/')
+
       PARAMS:
       ======
       ACCOUNT   Github account name, only used to make cert filename, for SSH
@@ -42,12 +42,12 @@ ssh_gen_github() (
       --ask     Provoke a prompt for all params
       --host    SSH host match pattern
       --comment Certificate comment
-     ,
+
       DEMO:
       ====
       # Generate with all defaults to PK file ~/.ssh/${DEFAULTS[host]}/${DEFAULTS[account]}
       ${THE_SCRIPT}
-     ,
+
       # Generate to ~/.ssh/${DEFAULTS[host]}/${ACCOUNT}
       ${THE_SCRIPT} ${ACCOUNT} --host github.com-${ACCOUNT} --comment Zoo
     "
@@ -64,7 +64,7 @@ ssh_gen_github() (
       case "${param}" in
         --            ) endopts=true ;;
         -\?|-h|--help ) print_help; exit ;;
-        --usage       ) print_usage | text_nice; exit ;;
+        --usage       ) print_usage; exit ;;
         --ask         ) DOWNSTREAM+=(--ask) ;;
         --host        ) DOWNSTREAM+=(--host "${@:2:1}"); shift ;;
         --comment     ) DOWNSTREAM+=(--comment "${@:2:1}"); shift ;;

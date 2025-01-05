@@ -22,7 +22,7 @@ config_tmux_default() (
   ")"
 
   # shellcheck disable=SC2317
-  print_usage() { echo "
+  print_usage() { text_nice "
     ${THE_SCRIPT} [--] [CONFD=\"$(lh_params default-string CONFD)\"]
   "; }
 
@@ -30,25 +30,25 @@ config_tmux_default() (
   print_help() { text_nice "
     Generate basic tmux configuration preset and source it to ~/.tmux.conf file. The
     config is with the following content:
-   ,
+
     \`\`\`
     ${CONFIG}
     \`\`\`
-   ,
+
     USAGE:
     =====
-    $(print_usage)
-   ,
+    $(print_usage | sed 's/^/,/')
+
     PARAMS:
     ======
     CONFD   Confd directory to store tmux custom configurations
     --      End of options
-   ,
+
     DEMO:
     ====
     # Generate with all defaults to \"$(lh_params default-string CONFD)/default.conf\"
     ${THE_SCRIPT}
-   ,
+
     # Generate to /etc/tmux/default.conf. Requires sudo for non-root user
     sudo ${THE_SCRIPT} /etc/tmux
   "; }
@@ -114,7 +114,7 @@ _config_tmux_base_parse_params() {
     case "${param}" in
       --            ) endopts=true ;;
       -\?|-h|--help ) print_help; exit ;;
-      --usage       ) print_usage | text_nice; exit ;;
+      --usage       ) print_usage; exit ;;
       -*            ) lh_params unsupported "${1}" ;;
       *             ) args+=("${1}") ;;
     esac
@@ -467,7 +467,11 @@ text_ltrim() { sed -e 's/^\s\+//' <<< "${1-$(cat)}"; }
 text_rtrim() { sed -e 's/\s\+$//' <<< "${1-$(cat)}"; }
 text_trim() { text_ltrim <<< "${1-$(cat)}" | text_rtrim; }
 text_rmblank() { grep -v '^\s*$' <<< "${1-$(cat)}"; return 0; }
-text_nice() { text_trim <<< "${1-$(cat)}" | text_rmblank | sed -e 's/^,//'; }
+text_nice() {
+  text_trim <<< "${1-$(cat)}" \
+  | sed -e '/^.\+$/,$!d' | tac \
+  | sed -e '/^.\+$/,$!d' -e 's/^,//' | tac
+}
 # .LH_SOURCED: {{/ lib/text.sh }}
 # .LH_SOURCED: {{/ config/tmux/tmux-base.ignore.sh }}
 

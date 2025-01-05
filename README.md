@@ -468,6 +468,7 @@
   
   ```
   # default.conf
+  
   set-option -g prefix C-Space
   set-option -g allow-rename off
   set -g history-limit 100000
@@ -526,16 +527,19 @@
   
   ```
   # plugins.conf
+  
   set -g @plugin 'tmux-plugins/tpm'
   set -g @plugin 'tmux-plugins/tmux-sensible'
   set -g @plugin 'tmux-plugins/tmux-resurrect'
   set -g @plugin 'tmux-plugins/tmux-sidebar'
+  
   # set-environment -g TMUX_PLUGIN_MANAGER_PATH '~/.tmux/plugins'
   # run -b '~/.tmux/plugins/tpm/tpm'
   ```
   
   ```
   # appendix.conf
+  
   set-environment -g TMUX_PLUGIN_MANAGER_PATH '~/.tmux/plugins'
   run -b '~/.tmux/plugins/tpm/tpm'
   ```

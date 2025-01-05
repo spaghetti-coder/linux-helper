@@ -13,7 +13,7 @@ config_tmux_default() (
   ")"
 
   # shellcheck disable=SC2317
-  print_usage() { echo "
+  print_usage() { text_nice "
     ${THE_SCRIPT} [--] [CONFD=\"$(lh_params default-string CONFD)\"]
   "; }
 
@@ -21,25 +21,25 @@ config_tmux_default() (
   print_help() { text_nice "
     Generate basic tmux configuration preset and source it to ~/.tmux.conf file. The
     config is with the following content:
-   ,
+
     \`\`\`
     ${CONFIG}
     \`\`\`
-   ,
+
     USAGE:
     =====
-    $(print_usage)
-   ,
+    $(print_usage | sed 's/^/,/')
+
     PARAMS:
     ======
     CONFD   Confd directory to store tmux custom configurations
     --      End of options
-   ,
+
     DEMO:
     ====
     # Generate with all defaults to \"$(lh_params default-string CONFD)/default.conf\"
     ${THE_SCRIPT}
-   ,
+
     # Generate to /etc/tmux/default.conf. Requires sudo for non-root user
     sudo ${THE_SCRIPT} /etc/tmux
   "; }

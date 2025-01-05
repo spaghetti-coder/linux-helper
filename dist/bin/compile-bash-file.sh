@@ -10,7 +10,7 @@ compile_bash_file() (
     grep -q -m 1 -- '.' "${0}" 2>/dev/null && THE_SCRIPT="$(basename -- "${0}")"
   }
 
-  print_usage() { echo "
+  print_usage() { text_nice "
     ${THE_SCRIPT} [--] SRC_FILE DEST_FILE LIBS_PATH
   "; }
 
@@ -23,18 +23,18 @@ compile_bash_file() (
     * Sourced code is wrapped with comment. To avoid wrapping use
    ,  '# .LH_SOURCE_NW:path/to/lib.sh' comment
     * Shebang from the sourced files are removed in the resulting file
-   ,
+
     USAGE:
     =====
-    $(print_usage)
-   ,
+    $(print_usage | sed 's/^/,/')
+
     PARAMS:
     ======
     SRC_FILE    Source file
     DEST_FILE   Compilation destination file
     LIBS_PATH   Directory with libraries
     --          End of options
-   ,
+
     DEMO:
     ====
     # Review the demo project
@@ -55,7 +55,7 @@ compile_bash_file() (
     ,# .LH_SOURCE:lib/hello.sh
     print_hello_world
     \`\`\`
-   ,
+
     # Compile to stdout
     ${THE_SCRIPT} ./src/bin/script.sh /dev/stdout ./src
     \`\`\`OUTPUT (stderr ignored):
@@ -83,7 +83,7 @@ compile_bash_file() (
       case "${param}" in
         --            ) endopts=true ;;
         -\?|-h|--help ) print_help; exit ;;
-        --usage       ) print_usage | text_nice; exit ;;
+        --usage       ) print_usage; exit ;;
         -*            ) lh_params_unsupported "${1}" ;;
         *             ) args+=("${1}") ;;
       esac
@@ -497,7 +497,11 @@ text_ltrim() { sed -e 's/^\s\+//' <<< "${1-$(cat)}"; }
 text_rtrim() { sed -e 's/\s\+$//' <<< "${1-$(cat)}"; }
 text_trim() { text_ltrim <<< "${1-$(cat)}" | text_rtrim; }
 text_rmblank() { grep -v '^\s*$' <<< "${1-$(cat)}"; return 0; }
-text_nice() { text_trim <<< "${1-$(cat)}" | text_rmblank | sed -e 's/^,//'; }
+text_nice() {
+  text_trim <<< "${1-$(cat)}" \
+  | sed -e '/^.\+$/,$!d' | tac \
+  | sed -e '/^.\+$/,$!d' -e 's/^,//' | tac
+}
 # .LH_SOURCED: {{/ lib/text.sh }}
 
 # .LH_SOURCED: {{/ lib/partial/replace-marker.sh }}

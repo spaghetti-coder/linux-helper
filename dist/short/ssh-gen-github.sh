@@ -18,7 +18,7 @@ ssh_gen_github() (
 
   declare -a DOWNSTREAM=(ssh_gen_vc "${DEFAULTS[host]}")
 
-  print_usage() { echo "
+  print_usage() { text_nice "
     ${THE_SCRIPT} [--ask] [--host HOST='${DEFAULTS[host]}'] \\
     ,  [--comment COMMENT=\"${DEFAULTS[comment]}\"] [--] [ACCOUNT='${DEFAULTS[account]}']
   "; }
@@ -29,11 +29,11 @@ ssh_gen_github() (
     text_nice "
       github.com centric shortcut of ssh-gen.sh tool. Generate private and public key
       pair and configure ~/.ssh/config file to use them.
-     ,
+
       USAGE:
       =====
-      $(print_usage)
-     ,
+      $(print_usage | sed 's/^/,/')
+
       PARAMS:
       ======
       ACCOUNT   Github account name, only used to make cert filename, for SSH
@@ -42,12 +42,12 @@ ssh_gen_github() (
       --ask     Provoke a prompt for all params
       --host    SSH host match pattern
       --comment Certificate comment
-     ,
+
       DEMO:
       ====
       # Generate with all defaults to PK file ~/.ssh/${DEFAULTS[host]}/${DEFAULTS[account]}
       ${THE_SCRIPT}
-     ,
+
       # Generate to ~/.ssh/${DEFAULTS[host]}/${ACCOUNT}
       ${THE_SCRIPT} ${ACCOUNT} --host github.com-${ACCOUNT} --comment Zoo
     "
@@ -64,7 +64,7 @@ ssh_gen_github() (
       case "${param}" in
         --            ) endopts=true ;;
         -\?|-h|--help ) print_help; exit ;;
-        --usage       ) print_usage | text_nice; exit ;;
+        --usage       ) print_usage; exit ;;
         --ask         ) DOWNSTREAM+=(--ask) ;;
         --host        ) DOWNSTREAM+=(--host "${@:2:1}"); shift ;;
         --comment     ) DOWNSTREAM+=(--comment "${@:2:1}"); shift ;;
@@ -96,7 +96,11 @@ text_ltrim() { sed -e 's/^\s\+//' <<< "${1-$(cat)}"; }
 text_rtrim() { sed -e 's/\s\+$//' <<< "${1-$(cat)}"; }
 text_trim() { text_ltrim <<< "${1-$(cat)}" | text_rtrim; }
 text_rmblank() { grep -v '^\s*$' <<< "${1-$(cat)}"; return 0; }
-text_nice() { text_trim <<< "${1-$(cat)}" | text_rmblank | sed -e 's/^,//'; }
+text_nice() {
+  text_trim <<< "${1-$(cat)}" \
+  | sed -e '/^.\+$/,$!d' | tac \
+  | sed -e '/^.\+$/,$!d' -e 's/^,//' | tac
+}
 # .LH_SOURCED: {{/ lib/text.sh }}
 # .LH_SOURCED: {{ short/ssh-gen-vc.sh }}
 ssh_gen_vc() (
@@ -127,7 +131,7 @@ ssh_gen_vc() (
     lh_params_default_COMMENT() { printf -- '%s\n' "$(id -un)@$(hostname -f)"; }
   }
 
-  print_usage() { echo "
+  print_usage() { text_nice "
     ${THE_SCRIPT} [--ask] [--host HOST=$(lh_params default-string HOST)] [--port PORT='$(lh_params default-string PORT)'] \\
    ,  [--comment COMMENT=\"$(lh_params default-string COMMENT)\"] [--] HOSTNAME [ACCOUNT=$(lh_params default-string ACCOUNT)]
   "; }
@@ -139,11 +143,11 @@ ssh_gen_vc() (
     text_nice "
       Generic version control system centric shortcut of ssh-gen.sh tool. Generate
       private and public key pair and configure ~/.ssh/config file to use them.
-     ,
+
       USAGE:
       =====
-      $(print_usage)
-     ,
+      $(print_usage | sed 's/^/,/')
+
       PARAMS:
       ======
       HOSTNAME  VC system hostname
@@ -154,12 +158,12 @@ ssh_gen_vc() (
       --host    SSH host match pattern
       --port    SSH port
       --comment Certificate comment
-     ,
+
       DEMO:
       ====
       # Generate with all defaults to PK file ~/.ssh/${hostname}/$(lh_params default-string ACCOUNT)
       ${THE_SCRIPT} ${hostname}
-     ,
+
       # Generate to ~/.ssh/${hostname}/${account} with custom hostname and comment
       ${THE_SCRIPT} ${hostname} ${account} --host ${hostname}-${account} --comment Zoo
     "
@@ -175,7 +179,7 @@ ssh_gen_vc() (
 
       case "${param}" in
         -\?|-h|--help ) print_help; exit ;;
-        --usage       ) print_usage | text_nice; exit ;;
+        --usage       ) print_usage; exit ;;
         --            ) endopts=true ;;
         --ask         ) lh_params set ASK true ;;
         --host        ) lh_params set HOST "${@:2:1}"; shift ;;
@@ -294,7 +298,7 @@ ssh_gen() (
     [conffile_entry]=false
   )
 
-  print_usage() { echo "
+  print_usage() { text_nice "
     ${THE_SCRIPT} [--ask] [--host HOST=$(lh_params default-string HOST)] [--port PORT='$(lh_params default-string PORT)'] \\
    ,  [--comment COMMENT=\"$(lh_params default-string COMMENT)\"] [--dirname DIRNAME=$(lh_params default-string DIRNAME)] \\
    ,  [--filename FILENAME=$(lh_params default-string FILENAME)] [--dest-dir DEST_DIR] [--] HOSTNAME USER
@@ -309,11 +313,11 @@ ssh_gen() (
 
     text_nice "
       Generate private and public key pair and manage Include entry in ~/.ssh/config.
-     ,
+
       USAGE:
       =====
-      $(print_usage)
-     ,
+      $(print_usage | sed 's/^/,/')
+
       PARAMS:
       ======
       HOSTNAME  The actual SSH host. With values like '%h' (the target hostname)
@@ -329,16 +333,16 @@ ssh_gen() (
       --dest-dir  Custom destination directory. In case the option is provided
      ,            --dirname option is ignored and Include entry won't be created in
      ,            ~/.ssh/config file. The directory will be autocreated
-     ,
+
       DEMO:
       ====
       # Generate with all defaults to PK file ~/.ssh/${HOSTNAME}/user
       ${THE_SCRIPT} ${HOSTNAME} user
-     ,
+
       # Generate to ~/.ssh/${CUSTOM_DIR}/${CUSTOM_FILE} instead of ~/.ssh/%h/${USER}
      ${THE_SCRIPT} --host 'serv.com *.serv.com' --comment Zoo --dirname '${CUSTOM_DIR}' \\
      ,  --filename '${CUSTOM_FILE}' -- '%h' ${USER}
-     ,
+
       # Generate interactively to ~/my/certs/${USER} (will be prompted for params).
       ${THE_SCRIPT} --ask --dest-dir ~/my/certs/${USER}
     "
@@ -355,7 +359,7 @@ ssh_gen() (
       case "${param}" in
         --            ) endopts=true ;;
         -\?|-h|--help ) print_help; exit ;;
-        --usage       ) print_usage | text_nice; exit ;;
+        --usage       ) print_usage; exit ;;
         --ask         ) lh_params set ASK true ;;
         --host        ) lh_params set HOST "${@:2:1}"; shift ;;
         --port        ) lh_params set PORT "${@:2:1}"; shift ;;

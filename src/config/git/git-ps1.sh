@@ -17,15 +17,15 @@ git_ps1() (
 .LH_HEREDOC
 )"
 
-  print_usage() { echo "${THE_SCRIPT}"; }
+  print_usage() { text_nice "${THE_SCRIPT}"; }
 
   print_help() { text_nice "
     Cusomize bash PS1 prompt for git
-   ,
+
     USAGE:
     =====
-    $(print_usage)
-   ,
+    $(print_usage | sed 's/^/,/')
+
     DEMO:
     ====
     ${THE_SCRIPT}
@@ -40,7 +40,7 @@ git_ps1() (
       case "${param}" in
         --            ) endopts=true ;;
         -\?|-h|--help ) print_help; exit ;;
-        --usage       ) print_usage | text_nice; exit ;;
+        --usage       ) print_usage; exit ;;
         *             ) lh_params unsupported "${1}" ;;
       esac
 
