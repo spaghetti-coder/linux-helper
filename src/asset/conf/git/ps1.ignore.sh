@@ -7,6 +7,9 @@ declare -F __git_ps1 &>/dev/null \
 || . /usr/lib/git-core/git-sh-prompt 2>/dev/null \
 || . /usr/share/git-core/git-prompt.sh 2>/dev/null
 
+# Preserve it in order to be able to rollback
+PS1_ORIGINAL="${PS1_ORIGINAL-${PS1}}"
+
 # shellcheck disable=SC2016
 PS1="$(
   printf -- '%s%s%s\n' \
