@@ -340,7 +340,7 @@ ssh_gen() (
     dest_dir="$(lh_params get DEST_DIR)"
     comment="$(lh_params get COMMENT)"
 
-    (set -x; mkdir -p "${dest_dir}") || return
+    (set -x; umask 0077; mkdir -p -- "${dest_dir}") || return
 
     if ! cat -- "${PK_PATH}" &>/dev/null; then
       (set -x; ssh-keygen -q -N '' -b 4096 -t rsa -C "${comment}" -f "${PK_PATH}") || return
@@ -364,7 +364,7 @@ ssh_gen() (
     declare identity_file="${PK_PATH_ALIAS}"
     ${CUSTOM_DEST_DIR} && identity_file="$(realpath -m -- "${PK_PATH_ALIAS}")"
     # shellcheck disable=SC2001
-    identity_file="$(sed -e 's/'"$(escape_sed_expr "${HOME}")"'/~/' <<< "${identity_file}")"
+    identity_file="$(sed -e 's/^'"$(escape_sed_expr "${HOME}")"'/~/' <<< "${identity_file}")"
 
     declare conf; conf="
       # SSH host match pattern. Sample:
