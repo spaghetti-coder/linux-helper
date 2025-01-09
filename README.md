@@ -7,6 +7,8 @@
 * [Libraries](#libraries)
 * [Helpers](#helpers)
 * [Proxmox](#proxmox)
+---
+* [Tips](#tips)
 * [Development](#development)
 
 ## Tools
@@ -611,114 +613,165 @@ TODO
 
 ## Proxmox
 
-<a id="pve/bin/deploy-lxc.sh"></a>
-<details><summary>pve/bin/deploy-lxc.sh</summary>
+<a id="pve/bin/deploy-lxc.tpl.sh"></a>
+<details><summary>pve/bin/deploy-lxc.tpl.sh</summary>
 
-  [Link to the section](#pve/bin/deploy-lxc.sh)
-  
+  [Link to the section](#pve/bin/deploy-lxc.tpl.sh)
+
   **AD HOC:**
-  ~~~sh
-  # Review and change input params (after "bash -s --")
-  # LH_VERSION can be changed to any treeish
-  bash -- <(
-    LH_VERSION='master'
-    curl -V &>/dev/null && dl_tool=(curl -fsSL) || dl_tool=(wget -qO-)
-    set -x; "${dl_tool[@]}" "https://github.com/spaghetti-coder/linux-helper/raw/${LH_VERSION:-master}/dist/pve/bin/deploy-lxc.sh" \
-    || "${dl_tool[@]}" "https://bitbucket.org/kvedenskii/linux-scripts/raw/${LH_VERSION:-master}/dist/pve/bin/deploy-lxc.sh"
-  ) [ID] [--ask] [--storage STORAGE] [--template TEMPLATE='ubuntu-24.04'] \
-    [--disk DISK] [--ram RAM] [--swap SWAP] [--cores CORES] [--privileged] [--onboot] \
-    [--ostype OSTYPE] [--pass PASS] [--pass-envvar PASS_ENVVAR='LH_LXC_ROOT_PASS'] \
-    [--hostname HOSTNAME] [--net-bridge NET_BRIDGE='vmbr0'] [--ip IP='dhcp'] \
-    [--gateway GATEWAY] [--profile PROFILE]... [--after-create AFTER_CREATE]... \
-    [--in-container IN_CONTAINER]...
-  ~~~
-  
-  Or download it locally, edit configration section of the downloaded file and execute
-
   ~~~sh
   # LH_VERSION can be changed to any treeish
   (
     LH_VERSION='master'
     curl -V &>/dev/null && dl_tool=(curl -fsSL) || dl_tool=(wget -qO-)
-    set -x; "${dl_tool[@]}" "https://github.com/spaghetti-coder/linux-helper/raw/${LH_VERSION:-master}/dist/pve/bin/deploy-lxc.sh" \
-    || "${dl_tool[@]}" "https://bitbucket.org/kvedenskii/linux-scripts/raw/${LH_VERSION:-master}/dist/pve/bin/deploy-lxc.sh"
+    set -x; "${dl_tool[@]}" "https://github.com/spaghetti-coder/linux-helper/raw/${LH_VERSION:-master}/dist/pve/bin/deploy-lxc.tpl.sh" \
+    || "${dl_tool[@]}" "https://bitbucket.org/kvedenskii/linux-scripts/raw/${LH_VERSION:-master}/dist/pve/bin/deploy-lxc.tpl.sh"
   ) | (DEST=./my-lxc.sh; set -x; tee -- "${DEST}" >/dev/null; chmod +x -- "${DEST}")
   ~~~
   
   **MAN:**
   ~~~
-  Deploy LXC container using self-contained script. Likely supported:
-  * alpine
-  * centos-like (8+)
-  * debian
-  * ubuntu
-  
-  USAGE:
-  =====
-  deploy-lxc.sh [ID] [--ask] [--storage STORAGE] [--template TEMPLATE='ubuntu-24.04'] \
-    [--disk DISK] [--ram RAM] [--swap SWAP] [--cores CORES] [--privileged] [--onboot] \
-    [--ostype OSTYPE] [--pass PASS] [--pass-envvar PASS_ENVVAR='LH_LXC_ROOT_PASS'] \
-    [--hostname HOSTNAME] [--net-bridge NET_BRIDGE='vmbr0'] [--ip IP='dhcp'] \
-    [--gateway GATEWAY] [--profile PROFILE]... [--after-create AFTER_CREATE]... \
-    [--in-container IN_CONTAINER]...
-  
-  PARAMS:
-  ======
-  ID          Numeric LXC container ID. Defaults to automanaged
-  --ask       Provoke a prompt for all params
-  --storage   PVE storage to use. Defaults to automanaged
-  --template  Container template best guess hint from
-              http://download.proxmox.com/images/system
-              Or direct http(s) link:
-              * https://images.linuxcontainers.org/images/
-              * http://mirror.turnkeylinux.org/turnkeylinux/images/proxmox/
-              * https://images.lxd.canonical.com/images/
-              Demo: https://benheater.com/proxmox-lxc-using-external-templates/
-  --ostype    Use if you know what you are doing
-  --disk      Disk size in GB. Defaults to template default
-  --ram       RAM size in MB. Defaults to PVE default
-  --swap      SWAP size in MB. Defaults to PVE default
-  --cores     Number of cores. Defaults to all available in PVE host
-  --privileged  Privileged container. Can be manipulated by some of profiles
-  --onboot      Start container on PVE boot
-  --pass        Container root password. If not set will attempt to get it from
-                the env variable provided by --pass-envvar. In the end
-                container root password must be reachable.
-  --pass-envvar Environment variable to read container root password from
-  --hostname    Container hostname
-  --net-bridge  PVE bridge network
-  --ip          Container IP or 'dhcp' if managed by the router
-  --gateway     Default gateway. Required when IP is not 'dhcp'
-  --profile     Convenience profiles configuring the container for some purpose.
-                Can be set multiple times or space separated
-  --after-create  Hook function that will run after container created on the PVE
-                  machine. Can be set multiple times or space separated. The
-                  function must be accessible in the configuration file.
-  --in-container  Hook function that will run in the container. The container
-                  will be started and stopped automatically. Can be set multiple
-                  times or space separated. The function must be accessible in
-                  the configuration file.
-  
-  PROFILES:
-  ========
-  * comfort - a bit more comfortable environment in the container
-  * docker - docker installed (docker-ready profile included)
-  * docker-ready - container is ready for docker installation
-  * vaapi - VAAPI hardware transcoding
-  * vpn-ready - container is ready for VPN
-  
-  DEMO:
-  ====
-  # Edit configuration section in deploy-lxc.sh and run it to deploy LXC
-  deploy-lxc.sh
-  
-  # Run overriding some configs in the configuration file and in
-  # interactive mode
-  LXC_PASS=qwerty deploy-lxc.sh --ask --privileged --disk 45 \
-    --pass-env LXC_PASS 120
+  Just clone the current script and edit the config section in the file top.
+  Review all the configuration sections for demo usage.
   ~~~
   
 </details>  
+
+[To top]
+
+## Tips
+
+<details><summary>PVE: Change hostname</summary>
+
+[Change hostname Proxmox](https://bobcares.com/blog/change-hostname-proxmox/)
+</details>
+
+<details><summary>PVE: Create / configure LXC container</summary>
+
+```sh
+# 
+# CREATE
+# 
+
+CT_ID="$(pvesh get /cluster/nextid)"  # Or numeric 100+ CT_ID value
+TEMPLATE="$(
+  template=TEMPLATE_FILE
+  tmp="$(ext=".tar.${template##*.tar.}"; set -x; mktemp --suffix "${ext}")"
+  curl -fsSL http://download.proxmox.com/images/system/${template} \
+  | (set -x; tee -- "${tmp}"); echo "${tmp}"
+)"  # Or: TEMPLATE=/var/lib/vz/template/cache/TEMPLATE_FILE
+NET='name=eth0,bridge=vmbr0,ip=dhcp'  # Or: NET='...,ip=10.0.0.69/8,gw=10.0.0.1'
+
+pct create "${CT_ID}" "${TEMPLATE}" \
+  --unprivileged 1 \
+  --net0 "${NET}" \
+  --password "$(openssl passwd -6 -salt "$(openssl rand -hex 6)" -stdin <<< changeme)" \
+  --storage local-lvm
+
+# 
+# CONFIGURE: basic
+# 
+
+# `--features nesting=1` # when `--unprivileged 0`
+pct set CT_ID \
+  --timezone host \
+  --features nesting=1,keyctl=1 \
+  --onboot 1 \
+  --cores 1 \
+  --memory 2048 \
+  --swap 1024 \
+  --hostname HOSTNAME \
+  --tags 'TAG1;TAG2'
+
+# https://almalinux.org/blog/2023-12-20-almalinux-8-key-update/
+# AlmaLinux < 9 fix GPG (with running container):
+lxc-attach -n CT_ID -- \
+  rpm --import https://repo.almalinux.org/almalinux/RPM-GPG-KEY-AlmaLinux
+
+# 
+# CONFIGURE: docker-ready
+# 
+
+# With `--features nesting=1,keyctl=1`
+# or `--unprivileged 0 --features nesting=1`
+# no additional settings required except for alpine
+
+# Alpine only (with running container):
+lxc-attach -n CT_ID -- \
+  rc-update add cgroups default >/dev/null
+
+# Alpine install docker (with running container):
+lxc-attach -n CT_ID -- /bin/sh -c "
+  apk add --update --no-cache docker docker-cli-compose
+  rc-update add docker boot
+
+  # May produce some 'limit' error that seems to be harmless
+  service docker start
+"
+
+# 
+# CONFIGURE: VPN-ready
+# 
+# * https://pve.proxmox.com/wiki/OpenVPN_in_LXC
+# 
+
+cat <<-'EOF' | set -e 's/^\s*//' | (set -x; tee -a /etc/pve/lxc/CT_ID.conf)
+  lxc.mount.entry: /dev/net dev/net none bind,create=dir 0 0
+  lxc.cgroup2.devices.allow: c 10:200 rwm
+EOF
+
+# Plus for GP in CentOS-likes
+echo "lxc.cap.drop:" | (set -x; tee -a /etc/pve/lxc/CT_ID.conf)
+
+# 
+# CONFIGURE: VAAPI
+# 
+
+# Unprivileged
+if [[ -e /dev/dri/renderD128 ]]; then
+  echo 'dev0: /dev/dri/renderD128,gid=104'
+
+  if [[ -e /dev/dri/card1 ]]; then
+    echo 'dev1: /dev/dri/card1,gid=44'
+  else
+    echo 'dev1: /dev/dri/card0,gid=44'
+  fi
+fi | (set -x; tee -a /etc/pve/lxc/CT_ID.conf)
+
+# Privileged
+cat <<-'EOF' | set -e 's/^\s*//' | (set -x; tee -a /etc/pve/lxc/CT_ID.conf)
+  lxc.cgroup2.devices.allow: c 226:0 rwm
+  lxc.cgroup2.devices.allow: c 226:128 rwm
+  lxc.cgroup2.devices.allow: c 29:0 rwm
+  lxc.mount.entry: /dev/fb0 dev/fb0 none bind,optional,create=file
+  lxc.mount.entry: /dev/dri dev/dri none bind,optional,create=dir
+  lxc.mount.entry: /dev/dri/card1 dev/dri/card1 none bind,optional,create=file
+EOF
+```
+</details>
+
+<details><summary>Ubuntu: Configure static IP</summary>
+
+```yaml
+## Reference: https://openvpn.net/as-docs/tutorials/tutorial--static-ip-on-ubuntu.html
+
+## Modify the configuration
+# cat /etc/netplan/01-netcfg.yaml
+network:
+  ethernets:
+    eth0:           # Ethernet interface. `ip link` to list all available
+    dhcp4: false    # Disable DHCP
+    addresses: [192.0.2.2/24]  # Static IP / subnet mask
+    routes:
+      - to: default
+        via: 192.0.2.254          # Default gateway
+    nameservers:
+      address: [192.168.0.2.254]  # DNS servers
+
+## Apply the configuration
+# netplan apply
+```
+</details>
 
 [To top]
 
