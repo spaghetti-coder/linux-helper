@@ -7,6 +7,8 @@
 * [Libraries](#libraries)
 * [Helpers](#helpers)
 * [Proxmox](#proxmox)
+---
+* [Tips](#tips)
 * [Development](#development)
 
 ## Tools
@@ -719,6 +721,111 @@ TODO
   ~~~
   
 </details>  
+
+[To top]
+
+## Tips
+
+<details><summary>Create / configure LXC container</summary>
+
+```sh
+# 
+# Create
+# 
+
+# CT_ID="$(pvesh get /cluster/nextid)" || NUMERIC
+# # TEMPLATE full path from /var/lib/vz/template/cache
+# # Or
+# TEMPLATE="$(
+#   tmp="$(mktemp --suffix TEMPLATE_FILE_EXTENSION)"
+#   curl -fsSL http://download.proxmox.com/images/system/TEMPLATE_FILE \
+#   | (set -x; tee "${tmp}"); echo "${tmp}"
+# )"
+# NET='ip=10.0.0.69/8,gw=10.0.0.1' # For non-dhcp IP
+pct create CT_ID TEMPLATE \
+  --unprivileged 1 \
+  --net0 name=eth0,bridge=vmbr0,ip=dhcp \
+  --password PASSWORD \
+  --storage local-lvm
+
+# 
+# Configure
+# 
+
+# FEATURES=nesting=1 # when privileged
+pct set CT_ID \
+  --timezone host \
+  --features nesting=1,keyctl=1 \
+  --onboot 1 \
+  --cores 1 \
+  --memory 2048 \
+  --swap 1024 \
+  --hostname HOSTNAME \
+  --tags TAG1;TAG2
+
+# 
+# AlmaLinux < 9 fix GPG
+#   https://almalinux.org/blog/2023-12-20-almalinux-8-key-update/
+# 
+
+lxc-attach -n CT_ID -- \
+  rpm --import https://repo.almalinux.org/almalinux/RPM-GPG-KEY-AlmaLinux
+
+# 
+# Docker ready
+# 
+
+echo 'lxc.cap.drop:' | (set -x; tee -a /etc/pve/lxc/CT_ID.conf)
+
+# Plus for Alpine only
+lxc-attach -n CT_ID -- \
+  rc-update add cgroups default >/dev/null
+
+# Alpine install docker:
+lxc-attach -n CT_ID -- \
+  apk add --update --no-cache docker docker-cli-compose
+lxc-attach -n CT_ID -- rc-update add docker boot
+lxc-attach -n CT_ID -- service docker start
+
+# 
+# VPN ready
+#   https://pve.proxmox.com/wiki/OpenVPN_in_LXC
+# 
+
+cat <<-'EOF' | set -e 's/^\s*//' | (set -x; tee -a /etc/pve/lxc/CT_ID.conf)
+  lxc.mount.entry: /dev/net dev/net none bind,create=dir 0 0
+  lxc.cgroup2.devices.allow: c 10:200 rwm
+EOF
+
+# Plus for CentOS-likes
+echo "lxc.cap.drop:" | (set -x; tee -a /etc/pve/lxc/CT_ID.conf)
+
+# 
+# VAAPI
+# 
+
+# Unprivileged
+if [[ -e /dev/dri/renderD128 ]]; then
+  echo 'dev0: /dev/dri/renderD128,gid=104' | (set -x; tee -a /etc/pve/lxc/CT_ID.conf)
+
+  if [[ -e /dev/dri/card1 ]]; then
+    echo 'dev1: /dev/dri/card1,gid=44' | (set -x; tee -a /etc/pve/lxc/CT_ID.conf)
+  else
+    echo 'dev1: /dev/dri/card0,gid=44' | (set -x; tee -a /etc/pve/lxc/CT_ID.conf)
+  fi
+fi
+
+# Privileged
+cat <<-'EOF' | set -e 's/^\s*//' | (set -x; tee -a /etc/pve/lxc/CT_ID.conf)
+  lxc.cgroup2.devices.allow: c 226:0 rwm
+  lxc.cgroup2.devices.allow: c 226:128 rwm
+  lxc.cgroup2.devices.allow: c 29:0 rwm
+  lxc.mount.entry: /dev/fb0 dev/fb0 none bind,optional,create=file
+  lxc.mount.entry: /dev/dri dev/dri none bind,optional,create=dir
+  lxc.mount.entry: /dev/dri/card1 dev/dri/card1 none bind,optional,create=file
+EOF
+```
+</details>
 
 [To top]
 

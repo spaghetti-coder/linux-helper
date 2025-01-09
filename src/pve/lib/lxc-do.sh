@@ -247,7 +247,7 @@ lxc_do() (
     [[ $? == 127 ]] && (
       set -x
       lxc-attach -n "${CT_ID}" -- /bin/sh -c \
-        'apk add --update --no-cache bash 2>/dev/null'
+        'apk add --update --no-cache bash >/dev/null'
     )
     [[ $? == 127 ]] && (
       set -x
@@ -262,6 +262,8 @@ lxc_do() (
 
     ("${prefix[@]}"; lxc-attach -n "${CT_ID}" -- bash -c -- "${cmd}")
   }
+
+  exists() { lxc-info "${CT_ID}" &>/dev/null; }
 
   get_uptime() (
     # get_uptime
@@ -395,6 +397,7 @@ lxc_do() (
     ensure_down
     ensure_up
     exec_cbk
+    exists
     get_uptime
     hookscript
     is_down
