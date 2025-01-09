@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+#
+# DEPRICATED in favour of deploy-lxc.tpl
+#
+
 # Allows config callbacks nesting
 DEPLOY_LXC_CONFIGS=(deploy_lxc_config "${DEPLOY_LXC_CONFIGS[@]}")
 
@@ -1313,7 +1317,9 @@ lxc_do() (
   }
 
   ensure_confline() {
-    # ensure_confline CONFLINE... || { ERR_BLOCK }
+    # On successful operation RESULT contains 'true' or 'false' for change status
+    #
+    # RESULT="$(ensure_confline CONFLINE...)" || { ERR_BLOCK }
 
     declare head; head="$(conffile_head)" || return
     declare tail; tail="$(conffile_tail)" || return
@@ -1331,15 +1337,17 @@ lxc_do() (
       }
     done
 
-    ! ${changed} && return
+    if ${changed}; then
+      printf -- '%s%s\n' "${head}" "${tail}" | (
+        set -x; tee -- "${CT_CONFFILE}" >/dev/null
+      ) || return
+    fi
 
-    printf -- '%s%s\n' "${head}" "${tail}" | (
-      set -x; tee -- "${CT_CONFFILE}" >/dev/null
-    )
+    echo "${changed}"
   }
 
   ensure_no_confline() {
-    # ensure_confline CONFLINE... || { ERR_BLOCK }
+    # ensure_no_confline CONFLINE... || { ERR_BLOCK }
 
     declare head; head="$(conffile_head)" || return
     declare tail; tail="$(conffile_tail)" || return
@@ -1360,8 +1368,10 @@ lxc_do() (
   }
 
   ensure_dev() {
-    # ensure_dev DEV_LINE... || { ERR_BLOCK }
-    # ensure_dev '/dev/dri/renderD128,gid=104'
+    # On successful operation RESULT contains 'true' or 'false' for change status
+    #
+    # RESULT="$(ensure_dev DEV_LINE...)" || { ERR_BLOCK }
+    # RESULT="$(ensure_dev '/dev/dri/renderD128,gid=104')"
 
     declare rc=0
 
@@ -1414,8 +1424,11 @@ lxc_do() (
   }
 
   ensure_mount() {
+    # On successful operation RESULT contains 'true' or 'false' for change status
+    #
+    # RESULT="$(ensure_mount MP_LINE...)" || { ERR_BLOCK }
     # ensure_mount MP_LINE... || { ERR_BLOCK }
-    # ensure_mount '/host/dir,mp=/ct/mountpoint,mountoptions=noatime,replicate=0,backup=0'
+    # RESULT="$(ensure_mount '/host/dir,mp=/ct/mountpoint,mountoptions=noatime,replicate=0,backup=0')"
 
     declare -i rc=0
 
@@ -1525,7 +1538,7 @@ lxc_do() (
     [[ $? == 127 ]] && (
       set -x
       lxc-attach -n "${CT_ID}" -- /bin/sh -c \
-        'apk add --update --no-cache bash 2>/dev/null'
+        'apk add --update --no-cache bash >/dev/null'
     )
     [[ $? == 127 ]] && (
       set -x
@@ -1541,18 +1554,20 @@ lxc_do() (
     ("${prefix[@]}"; lxc-attach -n "${CT_ID}" -- bash -c -- "${cmd}")
   }
 
+  exists() { pct config "${CT_ID}" --current &>/dev/null; }
+
   get_uptime() (
     # get_uptime
 
-    lxc-attach -n "${CT_ID}" -- /bin/sh -c '
-      grep -o '^[0-9]\+' /proc/uptime 2>/dev/null
-    ' || echo 0
+    lxc-attach -n "${CT_ID}" -- \
+      grep -o '^[0-9]\+' /proc/uptime 2>/dev/null \
+    || echo 0
   )
 
   hookscript() {
-    # ensure_hook [FUNC...] || { ERR_BLOCK }
+    # hookscript [FUNC...] || { ERR_BLOCK }
     # test() { declare CT_ID="${1}" PHASE="${2}"; echo "${CT_ID} ${PHASE}" >&2; }
-    # ensure_hook test
+    # hookscript test
     #
     # Hookscript info:
     #   https://codingpackets.com/blog/proxmox-hook-script-port-mirror/#hook-scripts
@@ -1615,11 +1630,12 @@ lxc_do() (
     # Ensure inc file sourced
     declare inc_rex; inc_rex='\s*\.\s\+'"$(escape_sed_expr "'${INC_PATH}'")"'\s*'
     grep -qx -- "${inc_rex}"'\s*' "${HOOK_PATH}" || (
-      declare hook_fname; hook_fname="$(basename -- "${HOOK_PATH}")"
       set -x
-      tee -a -- "${HOOK_PATH}" <<< ". '${INC_PATH}'" >/dev/null \
-      && pct set "${CT_ID}" --hookscript "local:snippets/${hook_fname}"
+      tee -a -- "${HOOK_PATH}" <<< ". '${INC_PATH}'" >/dev/null
     ) || return
+
+    declare hook_fname; hook_fname="$(basename -- "${HOOK_PATH}")"
+    (set -x; pct set "${CT_ID}" --hookscript "local:snippets/${hook_fname}") || return
   }
 
   is_down() {
@@ -1673,6 +1689,7 @@ lxc_do() (
     ensure_down
     ensure_up
     exec_cbk
+    exists
     get_uptime
     hookscript
     is_down

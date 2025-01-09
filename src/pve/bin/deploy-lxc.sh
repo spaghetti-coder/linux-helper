@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+#
+# DEPRICATED in favour of deploy-lxc.tpl
+#
+
 # Allows config callbacks nesting
 DEPLOY_LXC_CONFIGS=(deploy_lxc_config "${DEPLOY_LXC_CONFIGS[@]}")
 
