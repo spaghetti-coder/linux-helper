@@ -730,18 +730,18 @@ TODO
 
 ```sh
 # 
-# Create
+# CREATE
 # 
 
 # CT_ID="$(pvesh get /cluster/nextid)" || NUMERIC
-# # TEMPLATE full path from /var/lib/vz/template/cache
+# TEMPLATE=/var/lib/vz/template/cache/TEMPLATE_FILE
 # # Or
 # TEMPLATE="$(
 #   tmp="$(mktemp --suffix TEMPLATE_FILE_EXTENSION)"
 #   curl -fsSL http://download.proxmox.com/images/system/TEMPLATE_FILE \
 #   | (set -x; tee "${tmp}"); echo "${tmp}"
 # )"
-# NET='ip=10.0.0.69/8,gw=10.0.0.1' # For non-dhcp IP
+# NET='...,ip=10.0.0.69/8,gw=10.0.0.1' # For non-dhcp IP
 pct create CT_ID TEMPLATE \
   --unprivileged 1 \
   --net0 name=eth0,bridge=vmbr0,ip=dhcp \
@@ -749,7 +749,7 @@ pct create CT_ID TEMPLATE \
   --storage local-lvm
 
 # 
-# Configure
+# CONFIGURE: basic
 # 
 
 # FEATURES=nesting=1 # when privileged
@@ -763,33 +763,32 @@ pct set CT_ID \
   --hostname HOSTNAME \
   --tags TAG1;TAG2
 
-# 
-# AlmaLinux < 9 fix GPG
-#   https://almalinux.org/blog/2023-12-20-almalinux-8-key-update/
-# 
-
+# https://almalinux.org/blog/2023-12-20-almalinux-8-key-update/
+# AlmaLinux < 9 fix GPG (with running container):
 lxc-attach -n CT_ID -- \
   rpm --import https://repo.almalinux.org/almalinux/RPM-GPG-KEY-AlmaLinux
 
 # 
-# Docker ready
+# CONFIGURE: docker-ready
 # 
 
 echo 'lxc.cap.drop:' | (set -x; tee -a /etc/pve/lxc/CT_ID.conf)
 
-# Plus for Alpine only
+# Plus for Alpine only (with running container):
 lxc-attach -n CT_ID -- \
   rc-update add cgroups default >/dev/null
 
-# Alpine install docker:
+# Alpine install docker (with running container):
 lxc-attach -n CT_ID -- \
   apk add --update --no-cache docker docker-cli-compose
 lxc-attach -n CT_ID -- rc-update add docker boot
+# May produce some 'limit' error that can be ignored
 lxc-attach -n CT_ID -- service docker start
 
 # 
-# VPN ready
-#   https://pve.proxmox.com/wiki/OpenVPN_in_LXC
+# CONFIGURE: VPN-ready
+# 
+# * https://pve.proxmox.com/wiki/OpenVPN_in_LXC
 # 
 
 cat <<-'EOF' | set -e 's/^\s*//' | (set -x; tee -a /etc/pve/lxc/CT_ID.conf)
@@ -801,7 +800,7 @@ EOF
 echo "lxc.cap.drop:" | (set -x; tee -a /etc/pve/lxc/CT_ID.conf)
 
 # 
-# VAAPI
+# CONFIGURE: VAAPI
 # 
 
 # Unprivileged

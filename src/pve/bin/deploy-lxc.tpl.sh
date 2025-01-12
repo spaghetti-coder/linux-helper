@@ -23,7 +23,7 @@ lxc_config() {
     --unprivileged=1
     # Don't keep plain password, hash with:
     #   # https://bamtech.medium.com/how-to-create-a-hashed-password-1b85a4ebe54
-    #   openssl passwd -6 -salt "$(openssl rand -base64 8)" -stdin <<< PASSWORD
+    #   openssl passwd -6 -salt "$(openssl rand -hex 6)" -stdin <<< PASSWORD
     --password='changeme'
   )
 
@@ -40,19 +40,15 @@ lxc_config() {
     # --mp0=local-lvm:2 # Allocate new volume, STORAGE_ID:SIZE_IN_GiB
   )
 
-  # Predeploy stage available variables:
-  # * LXC_CREATE  # Assoc key-val of CREATE_PARAMS without dashes
-  # * LXC_SET     # Assoc key-val of SET_PARAMS without dashes
-  #
   # Postdeploy stage available variables:
-  # * CT_ID       With fixed container id
-  # * OS_TYPE     Guest OS type
-  # * PRIVILEGED  With value of true / false
+  # * CT_ID       Actual container id
+  # * OS_TYPE     Actual Guest OS type
+  # * PRIVILEGED  Actual privileged state with value of true / false
 
   # Better prefix hooks with 'lxc_' to avoid overriding
   # of deploy_lxc internal functions
-  PREDEPLOY_HOOKS=(lxc_predeploy_dummy "${PREDEPLOY_HOOKS[@]}")
-  POSTDEPLOY_HOOKS=(lxc_postdeploy_dummy "${POSTDEPLOY_HOOKS[@]}")
+  PREDEPLOY=(lxc_predeploy_dummy)
+  POSTDEPLOY=(lxc_postdeploy_dummy)
 }
 
 # shellcheck disable=SC2317
@@ -70,9 +66,6 @@ lxc_predeploy_dummy() {
 
   # Do something more
 }
-
-# TODO:
-# * profile_comfort ?
 
 # shellcheck disable=SC2317
 lxc_postdeploy_dummy() {
@@ -126,24 +119,26 @@ lxc_postdeploy_dummy() {
 
 # shellcheck disable=SC2317
 deploy_lxc() (
-  main() {
-    export_configs || return
-    run_predeploy || return
-    validate_config || return
+  declare -gr SELF="${FUNCNAME[0]}"
 
-    declare existed=false
-    do_lxc exists && existed=true
+  main() {
+    init_internal_vars
+
+    process_configs || return
+    run_predeploy || return
+    return
+    validate_config || return
 
     ensure_container >/dev/null || return
     update_config
 
     # No need to break the process if container existed
-    configure_container >/dev/null || { ! ${existed} && return 1; }
+    configure_container >/dev/null || return 1
 
     # Always run this to fix AlmaLinux 8 GPG issue
     profile_fix_almalinux8_gpg
 
-    process_postdeploy || { ! ${existed} && return 1; }
+    run_postdeploy || return 1
 
     if ${ONBOOT}; then
       log_info "Starting the container"
@@ -151,38 +146,21 @@ deploy_lxc() (
     fi
   }
 
-  { # Internal vars
-    declare -r SELF="${FUNCNAME[0]}"
+  init_internal_vars() {
+    declare -g \
+      CT_ID \
+      TEMPLATE \
+      PRIVILEGED \
+      OS_TYPE
+    declare -ga \
+      PREDEPLOY \
+      POSTDEPLOY
 
-    declare CT_ID TEMPLATE
-    declare -a PCT_CREATE_PARAMS PCT_SET_PARAMS
-
-    # Initial deployment options
-    declare TEMPLATE \
-            STORAGE \
-            DISK \
-            PRIVILEGED \
-            ROOT_PASS \
-            OS_TYPE \
-            BRIDGE \
-            IP \
-            GATEWAY
-
-    # Config deployment options
-    declare RAM \
-            SWAP \
-            CORES \
-            ONBOOT \
-            HOST_NAME \
-            TAGS=()
-
-    declare -a  PREDEPLOY_HOOKS \
-                POSTDEPLOY_HOOKS
-
-    declare -a DL_TOOL; download_tool DL_TOOL
-    declare -r TEMPLATES_URL=http://download.proxmox.com/images/system
-    declare -r TEMPLATES_HOME=/var/lib/vz/template/cache
-    declare TEMPLATE_FILE
+    declare -gr \
+      TEMPLATES_HOME=/var/lib/vz/template/cache \
+      TEMPLATES_URL=http://download.proxmox.com/images/system
+    declare -g TEMPLATE_FILE
+    declare -ga DL_TOOL; download_tool DL_TOOL
   }
 
   # HELPERS
@@ -200,20 +178,43 @@ deploy_lxc() (
   # PRE-DEPLOY
   # ,,,,,,,,,,
 
-  export_configs() {
+  process_configs() {
+    log_info "Exporting configs ..."
+
+    declare -a  create_params set_params \
+                predeploy postdeploy
     declare c; for c in "${DEPLOY_LXC_CONFIGS[@]}"; do
+      # Reset from the previous iteration
+      CREATE_PARAMS=(); SET_PARAMS=()
+      PREDEPLOY=(); POSTDEPLOY=()
+
       "${c}" || return
+
+      create_params+=("${CREATE_PARAMS[@]}")
+      set_params+=("${SET_PARAMS[@]}")
+      predeploy+=("${PREDEPLOY[@]}")
+      postdeploy+=("${POSTDEPLOY[@]}")
     done
+
+    CREATE_PARAMS=("${create_params[@]}")
+    SET_PARAMS=("${set_params[@]}")
+
+    # shellcheck disable=SC2128,SC2178
+    predeploy="$(
+      printf -- '%s\n' "${predeploy[@]}" \
+      | uniq_ordered | grep '.\+'
+    )" && mapfile -t PREDEPLOY <<< "${predeploy}"
+
+    # shellcheck disable=SC2128,SC2178
+    postdeploy="$(
+      printf -- '%s\n' "${postdeploy[@]}" \
+      | uniq_ordered | grep '.\+'
+    )" && mapfile -t POSTDEPLOY <<< "${postdeploy}"
   }
 
   run_predeploy() {
-    declare uniq; uniq="$(
-      printf -- '%s\n' "${PREDEPLOY_HOOKS[@]}" \
-      | uniq_ordered | grep '.\+'
-    )" && mapfile -t uniq <<< "${uniq}"
-
-    declare hook; for hook in "${uniq[@]}"; do
-      log_info "Running '${hook}' hook"
+    declare hook; for hook in "${PREDEPLOY[@]}"; do
+      log_info "Running '${hook}' hook ..."
       "${hook}" || {
         log_fatal "Hook '${hook}' failed"
         return 1
@@ -423,13 +424,8 @@ deploy_lxc() (
   # ,,,,,,,,,,,
 
   process_postdeploy() {
-    declare uniq; uniq="$(
-      printf -- '%s\n' "${POSTDEPLOY_HOOKS[@]}" \
-      | uniq_ordered | grep '.\+'
-    )" && mapfile -t uniq <<< "${uniq}"
-
-    declare hook; for hook in "${uniq[@]}"; do
-      log_info "Running '${hook}' hook"
+    declare hook; for hook in "${POSTDEPLOY[@]}"; do
+      log_info "Running '${hook}' hook ..."
       "${hook}" || {
         log_fatal "Hook '${hook}' failed"
         return 1
