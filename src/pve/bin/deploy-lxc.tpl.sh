@@ -1,60 +1,53 @@
 #!/usr/bin/env bash
 
-# Allows config callbacks nesting. Config function can be renamed.
-DEPLOY_LXC_CONFIGS=(lxc_config "${DEPLOY_LXC_CONFIGS[@]}")
+# Allows config callbacks nesting.
+# Config function can be renamed.
+DEPLOY_LXC_CONFIGS+=(lxc_config)
 
 lxc_config() {
-  # `get_next_id` to automanage or set manually.
-  # With automanaged will never upgrade existing container,
-  # will create new ones on each run. Demo:
-  #   CT_ID=169
+  # `get_next_id` generates next available CT_ID. With this each run of the
+  # script will trigger creating of a new container. Consider using a
+  # hardcoded numeric value instead for stable deployments
   CT_ID="$(get_next_id)"
 
-  #
-  # Initial deployment options
-  # Only applied when container is not created yet
-  #
-
-  # Best guess hint from:
-  #   http://download.proxmox.com/images/system
+  # Best guess hint from: http://download.proxmox.com/images/system
   TEMPLATE=ubuntu-24.04
-  # `pick_storage` to automanage or set manually. Demo:
-  #   STORAGE=local-lvm
-  STORAGE="$(pick_storage)"
-  # Leave blank to automanage or set manually. Demo:
-  #   DISK=20 # in GB
-  DISK=
-  # After deployment stage will be populated by true or false
-  # from container conf file.
-  PRIVILEGED=false
-  ROOT_PASS=changeme
-  # Use if you know what you are doing. After deployment stage
-  # will be populated by value from container conf file. Demo:
-  #   OS_TYPE=ubuntu
-  #   OS_TYPE=unmanaged
-  OS_TYPE=
-  BRIDGE=vmbr0
-  # With non-dhcp IP requires GATEWAY, for dhcp GATEWAY is ignored. Demo:
-  #   IP=10.0.0.69/32
-  #   GATEWAY=10.0.0.1
-  IP=dhcp
-  GATEWAY=
 
-  #
-  # Container configuration
-  #
+  # Params to `pct create` command
+  CREATE_PARAMS=(
+    # Or '...,ip=10.0.0.69/8,gw=10.0.0.1'. Don't forget IP prefix and GW
+    --net0='name=eth0,bridge=vmbr0,ip=dhcp'
+    # `pick_storage` to automanage STORAGE_ID
+    --storage="$(pick_storage)" # local-lvm
+    --rootfs=5  # In GB, optional
+    --unprivileged=1
+    # Don't keep plain password, hash with:
+    #   # https://bamtech.medium.com/how-to-create-a-hashed-password-1b85a4ebe54
+    #   openssl passwd -6 -salt "$(openssl rand -base64 8)" -stdin <<< PASSWORD
+    --password='changeme'
+  )
 
-  # Leave blank to automanage or set manually. Demo:
-  #   RAM=2048  # in MB
-  #   SWAP=1024 # in MB
-  RAM=
-  SWAP=
-  # Leave blank to automanage or set manually. Demo:
-  #   CORES=2
-  CORES=1
-  ONBOOT=false
-  HOST_NAME=
-  TAGS=(lh-lxc)
+  # Params to `pct set` command
+  SET_PARAMS=(
+    --timezone=host
+    --onboot=0
+    --memory=512 # In MB, optional
+    --cores=1 # Optional, defaulta to all from PVE host
+    --hostname=lh-lxc # Optional
+    --tags='lh-lxc;changeme' # Optional, semicolon separated
+    # --features='nesting=1,keyctl=1' # Automanaged according to PRIVILEGED
+    # --swap=512 # In MB, optional
+    # --mp0=local-lvm:2 # Allocate new volume, STORAGE_ID:SIZE_IN_GiB
+  )
+
+  # Predeploy stage available variables:
+  # * LXC_CREATE  # Assoc key-val of CREATE_PARAMS without dashes
+  # * LXC_SET     # Assoc key-val of SET_PARAMS without dashes
+  #
+  # Postdeploy stage available variables:
+  # * CT_ID       With fixed container id
+  # * OS_TYPE     Guest OS type
+  # * PRIVILEGED  With value of true / false
 
   # Better prefix hooks with 'lxc_' to avoid overriding
   # of deploy_lxc internal functions
@@ -64,7 +57,6 @@ lxc_config() {
 
 # shellcheck disable=SC2317
 lxc_predeploy_dummy() {
-  # Will not run if container already exists
 
   return
 
@@ -125,12 +117,12 @@ lxc_postdeploy_dummy() {
   )
 }
 
-
-
-
-
 # ^^^^^^^^^^^^^^^^^^^^^
 # ^^^ END OF CONFIG ^^^
+
+
+
+
 
 # shellcheck disable=SC2317
 deploy_lxc() (
@@ -162,7 +154,8 @@ deploy_lxc() (
   { # Internal vars
     declare -r SELF="${FUNCNAME[0]}"
 
-    declare CT_ID
+    declare CT_ID TEMPLATE
+    declare -a PCT_CREATE_PARAMS PCT_SET_PARAMS
 
     # Initial deployment options
     declare TEMPLATE \
