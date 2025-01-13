@@ -127,15 +127,13 @@ deploy_lxc() (
     process_configs || return
     run_predeploy || return
 
-    ensure_container >/dev/null || return
-    return
+    ensure_container || return
     update_config
 
-    # No need to break the process if container existed
-    configure_container >/dev/null || return 1
+    configure_container || return
 
     # Always run this to fix AlmaLinux 8 GPG issue
-    profile_fix_almalinux8_gpg
+    profile_fix_almalinux8_gpg || return
 
     run_postdeploy || return 1
 
@@ -247,7 +245,7 @@ deploy_lxc() (
   }
 
   ensure_template_file() {
-    log_info "Detecting template"
+    log_info "Detecting template ..."
 
     declare template_url; template_url="$(detect_template_url "${TEMPLATE}")" || {
       log_fatal "Can't detect template url for '${TEMPLATE}'"
@@ -259,11 +257,11 @@ deploy_lxc() (
 
     cat -- "${TEMPLATE_FILE}" &>/dev/null && return
 
-    log_info "Downloading template '${filename}'"
+    log_info "Downloading template '${filename}' ..."
 
-    (set -x; "${DL_TOOL[@]}" "${template_url}" | tee -- "${TEMPLATE_FILE}") || {
+    (set -x; "${DL_TOOL[@]}" "${template_url}" | tee -- "${TEMPLATE_FILE}" >/dev/null) || {
       (set -x; rm -f "${TEMPLATE_FILE}")
-      log_fatal "Can't download '${filename}' to '${TEMPLATE_FILE}'"
+      log_fatal "Can't download template to '${TEMPLATE_FILE}'"
       return 1
     }
   }
@@ -282,9 +280,10 @@ deploy_lxc() (
 
     ( set -o pipefail
       (set -x; "${cmd[@]}") 3>&1 1>&2 2>&3 \
-      | sed -e 's/'"${pass_rex}"'/\1*****\3/'
-    ) 3>&1 1>&2 2>&3 || {
-      log_fatal "Can't create container"; return 1
+      | sed -e 's/'"${pass_rex}"'/\1*****/g'
+    ) 3>/dev/null 1>&2 2>&3 || {
+      log_fatal "Can't create container"
+      return 1
     }
   }
 
@@ -302,21 +301,12 @@ deploy_lxc() (
     ${PRIVILEGED} || features+=",keyctl=1"
 
     declare -a cmd=(
-      pct set "${CT_ID}" --timezone host
-      --features "${features}"
-      --onboot "$(! ${ONBOOT}; echo $?)"
-    )
-
-    [[ -n "${RAM}" ]] && cmd+=(--memory "${RAM}")
-    [[ -n "${SWAP}" ]] && cmd+=(--swap "${SWAP}")
-    [[ -n "${CORES}" ]] && cmd+=(--cores "${CORES}")
-    [[ -n "${HOST_NAME}" ]] && cmd+=(--hostname "${HOST_NAME}")
-    [[ ${#TAGS[@]} -gt 0 ]] && cmd+=(
-      --tags "$(text_trim "${TAGS[*]}" | sed -e 's/\s\+/;/g')"
+      pct set "${CT_ID}" --features "${features}" "${SET_PARAMS[@]}"
     )
 
     (set -x; "${cmd[@]}") || {
-      log_fatal "Can't apply configuration"; return 1
+      log_fatal "Can't apply configuration"
+      return 1
     }
   }
 
