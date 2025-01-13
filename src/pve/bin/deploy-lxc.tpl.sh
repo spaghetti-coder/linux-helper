@@ -119,17 +119,16 @@ lxc_postdeploy_dummy() {
 
 # shellcheck disable=SC2317
 deploy_lxc() (
-  declare -gr SELF="${FUNCNAME[0]}"
+  declare -g SELF="${FUNCNAME[0]}"
 
   main() {
     init_internal_vars
 
     process_configs || return
     run_predeploy || return
-    return
-    validate_config || return
 
     ensure_container >/dev/null || return
+    return
     update_config
 
     # No need to break the process if container existed
@@ -147,20 +146,23 @@ deploy_lxc() (
   }
 
   init_internal_vars() {
+    declare -ga DL_TOOL; download_tool DL_TOOL || return
+    declare -g TEMPLATE_FILE
+
+    declare -gr \
+      TEMPLATES_HOME=/var/lib/vz/template/cache \
+      TEMPLATES_URL=http://download.proxmox.com/images/system
+
     declare -g \
       CT_ID \
       TEMPLATE \
       PRIVILEGED \
       OS_TYPE
     declare -ga \
+      CREATE_PARAMS \
+      SET_PARAMS \
       PREDEPLOY \
       POSTDEPLOY
-
-    declare -gr \
-      TEMPLATES_HOME=/var/lib/vz/template/cache \
-      TEMPLATES_URL=http://download.proxmox.com/images/system
-    declare -g TEMPLATE_FILE
-    declare -ga DL_TOOL; download_tool DL_TOOL
   }
 
   # HELPERS
@@ -222,99 +224,6 @@ deploy_lxc() (
     done
   }
 
-  validate_config_ip() {
-    declare label="${1}"
-    declare ip="${2}"
-    declare -n _errbag="${3}"
-    declare prefix; prefix="$(cut -d'/' -f2- <<< "${ip}/" | sed 's/.$//')"
-
-    {
-      grep -qx '[0-9]\+' <<< "${prefix}" \
-      && [[ ${prefix} -ge 0 ]] \
-      && [[ ${prefix} -le 32 ]]
-    } || _errbag+=("${label} has invalid prefix")
-
-    ip="$(cut -d'/' -f1 <<< "${ip}/")"
-    # https://stackoverflow.com/a/35701965
-    if ! [[ "$ip" =~ ^(([1-9]?[0-9]|1[0-9][0-9]|2([0-4][0-9]|5[0-5]))\.){3}([1-9]?[0-9]|1[0-9][0-9]|2([0-4][0-9]|5[0-5]))$ ]]; then
-      _errbag+=("${label} invalid format")
-    fi
-  }
-
-  validate_config() {
-    declare -a errbag
-
-    grep -qx '[1-9][0-9]\{2,\}' <<< "${CT_ID}" || errbag+=(
-      "CT_ID must be a starting from 100 numeric"
-    )
-
-    declare -a opts_required
-    declare -a opts_numeric=(RAM SWAP CORES)
-    declare -a opts_bool=(ONBOOT)
-    declare -a opts_arr=(TAGS)
-
-    if ! do_lxc exists; then
-      opts_required=(TEMPLATE ROOT_PASS BRIDGE "${opts_required[@]}")
-      opts_numeric=(DISK "${opts_numeric[@]}")
-      opts_bool=(PRIVILEGED "${opts_bool[@]}")
-
-      list_storages | grep -qx "$(escape_sed_expr "${STORAGE}")" || errbag+=(
-        "STORAGE invalid: '${STORAGE}'"
-      )
-
-      if [[ "${IP}" != dhcp ]]; then
-        opts_required+=(GATEWAY)
-        validate_config_ip IP "${IP}" errbag
-        # Dummy prefix for GATEWAY
-        validate_config_ip GATEWAY "${GATEWAY}/32" errbag
-      fi
-    fi
-
-    declare opt; for opt in "${opts_required[@]}"; do
-      grep -qx '.\+' <<< "${!opt}" || errbag+=(
-        "${opt} is required"
-      )
-    done
-
-    declare opt; for opt in "${opts_numeric[@]}"; do
-      grep -qx '\([1-9][0-9]*\)\?' <<< "${!opt}" || errbag+=(
-        "${opt} must be a numeric"
-      )
-    done
-
-    declare opt; for opt in "${opts_bool[@]}"; do
-      grep -qx '\(true\|false\)' <<< "${!opt}" || errbag+=(
-        "${opt} must have a value of true or false"
-      )
-    done
-
-    declare meta
-    declare opt; for opt in "${opts_arr[@]}"; do
-      meta="$(declare -p -- "${opt}" 2>/dev/null | head -n 1)"
-      grep -q '^declare -a' <<< "${meta}" || {
-        errbag+=("${opt} must be an array")
-        continue
-      }
-    done
-
-    declare hook; for hook in "${PREDEPLOY_HOOKS[@]}"; do
-      declare -F "${hook}" &>/dev/null || errbag+=(
-        "PREDEPLOY_HOOK function '${hook}' doesn't exist"
-      )
-    done
-
-    declare hook; for hook in "${POSTDEPLOY_HOOKS[@]}"; do
-      declare -F "${hook}" &>/dev/null || errbag+=(
-        "POSTDEPLOY_HOOK function '${hook}' doesn't exist"
-      )
-    done
-
-    [[ ${#errbag[@]} -lt 1 ]] || {
-      log_fatal "${errbag[@]}"
-      return 1
-    }
-  }
-
   # DEPLOY
   # ,,,,,,
 
@@ -353,9 +262,9 @@ deploy_lxc() (
     log_info "Downloading template '${filename}'"
 
     (set -x; "${DL_TOOL[@]}" "${template_url}" | tee -- "${TEMPLATE_FILE}") || {
-      log_fatal "Can't download '${filename}' to '${TEMPLATE_FILE}'"
       (set -x; rm -f "${TEMPLATE_FILE}")
-      return
+      log_fatal "Can't download '${filename}' to '${TEMPLATE_FILE}'"
+      return 1
     }
   }
 
@@ -366,23 +275,14 @@ deploy_lxc() (
 
     log_info "Deploying ${CT_ID}${HOST_NAME:+ (${HOST_NAME})}"
 
-    declare net="name=eth0,bridge=${BRIDGE},ip=${IP}"
-    [[ -n "${GATEWAY}" ]] && net+=",gw=${GATEWAY}"
-
     declare -a cmd=(
-      pct create "${CT_ID}" "${TEMPLATE_FILE}"
-        --unprivileged "$(${PRIVILEGED}; echo $?)"
-        --net0 "${net}"
-        --password "${ROOT_PASS}"
-        --storage "${STORAGE}"
+      pct create "${CT_ID}" "${TEMPLATE_FILE}" "${CREATE_PARAMS[@]}"
     )
-
-    [[ -n "${OS_TYPE}" ]] && cmd+=(--ostype "${OS_TYPE}")
-    [[ -n "${DISK}" ]] && cmd+=(--rootfs "${DISK}")
+    declare pass_rex=''\''\?\(--password[= ]\)[^ ]\+'
 
     ( set -o pipefail
       (set -x; "${cmd[@]}") 3>&1 1>&2 2>&3 \
-      | sed -e 's/\( --password \)\(.\+\)\( --storage .\+\)/\1*****\3/'
+      | sed -e 's/'"${pass_rex}"'/\1*****\3/'
     ) 3>&1 1>&2 2>&3 || {
       log_fatal "Can't create container"; return 1
     }
