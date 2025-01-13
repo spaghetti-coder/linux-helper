@@ -61,7 +61,7 @@ lxc_predeploy_dummy() {
   if ! do_lxc exists; then true
     # Avoid keeping ROOT_PASS in config in clear text,
     # you can get it from filesystem instead:
-    ROOT_PASS="$(cat ~/secrets/my-virtenv.pass)"
+    CREATE_PARAMS+=(--password "$(cat ~/secrets/my-virtenv.pass)") || return
   fi
 
   # Do something more
@@ -83,7 +83,7 @@ lxc_postdeploy_dummy() {
   # Only centos-like, debian/ubuntu-like and alpine supported
   profile_docker
 
-  log_info "Bind-moun some dir"
+  log_info "Bind-mount some dir"
   do_lxc ensure_confline \
     "lxc.mount.entry: /pve/dir lxc/dir none bind,create=dir 0 0" \
   || log_fatal "Can't mount"
@@ -276,12 +276,12 @@ deploy_lxc() (
     declare -a cmd=(
       pct create "${CT_ID}" "${TEMPLATE_FILE}" "${CREATE_PARAMS[@]}"
     )
-    declare pass_rex=''\''\?\(--password[= ]\)[^ ]\+'
+    declare pass_rex='\(--password[= ]\)[^ ]\+'
 
     ( set -o pipefail
-      (set -x; "${cmd[@]}") 3>&1 1>&2 2>&3 \
+      (set -x; "${cmd[@]}" >/dev/null) 3>&1 1>&2 2>&3 \
       | sed -e 's/'"${pass_rex}"'/\1*****/g'
-    ) 3>/dev/null 1>&2 2>&3 || {
+    ) 3>&1 1>&2 2>&3 || {
       log_fatal "Can't create container"
       return 1
     }
@@ -295,7 +295,7 @@ deploy_lxc() (
   }
 
   configure_container() {
-    log_info "Configurint ${CT_ID}${HOST_NAME:+ (${HOST_NAME})}"
+    log_info "Configuring ${CT_ID}${HOST_NAME:+ (${HOST_NAME})} ..."
 
     declare features; features='nesting=1'
     ${PRIVILEGED} || features+=",keyctl=1"
@@ -304,7 +304,7 @@ deploy_lxc() (
       pct set "${CT_ID}" --features "${features}" "${SET_PARAMS[@]}"
     )
 
-    (set -x; "${cmd[@]}") || {
+    (set -x; "${cmd[@]}" >/dev/null) || {
       log_fatal "Can't apply configuration"
       return 1
     }
@@ -313,7 +313,7 @@ deploy_lxc() (
   # POST-DEPLOY
   # ,,,,,,,,,,,
 
-  process_postdeploy() {
+  run_postdeploy() {
     declare hook; for hook in "${POSTDEPLOY[@]}"; do
       log_info "Running '${hook}' hook ..."
       "${hook}" || {
