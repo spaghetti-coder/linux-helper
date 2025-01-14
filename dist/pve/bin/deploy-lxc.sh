@@ -1541,7 +1541,7 @@ lxc_do() (
     ("${prefix[@]}"; lxc-attach -n "${CT_ID}" -- bash -c -- "${cmd}")
   }
 
-  exists() { lxc-info "${CT_ID}" &>/dev/null; }
+  exists() { pct config "${CT_ID}" --current &>/dev/null; }
 
   get_uptime() (
     # get_uptime

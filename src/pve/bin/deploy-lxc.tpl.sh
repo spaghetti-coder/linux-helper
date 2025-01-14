@@ -15,7 +15,7 @@ lxc_config() {
 
   # Params to `pct create` command
   CREATE_PARAMS=(
-    # Or '...,ip=10.0.0.69/8,gw=10.0.0.1'. Don't forget IP prefix and GW
+    # --net0='name=eth0,bridge=vmbr0,ip=10.0.0.69/8,gw=10.0.0.1'
     --net0='name=eth0,bridge=vmbr0,ip=dhcp'
     # `pick_rootdir` to automanage STORAGE_ID
     --storage="$(pick_rootdir)" # local-lvm
@@ -126,12 +126,13 @@ deploy_lxc() (
     update_config
 
     configure_container || return
+    update_config
 
     # Detect started state
     declare was_up=false
     do_lxc is_up && was_up=true
 
-    # Give it some time to warm up
+    # Give it some time to warm up, less for alpine
     declare -i warm=15
     [[ "${OS_TYPE}" == alpine ]] && warm=5
 
@@ -144,11 +145,12 @@ deploy_lxc() (
     }
     declare RC=$?
 
+    declare ct_marker="${CT_ID}${HOST_NAME:+ (${HOST_NAME})}"
     if ${was_up} || ${ONBOOT}; then
-      log_info "Starting the container"
+      log_info "Starting the container: ${ct_marker}"
       do_lxc ensure_up 0
     else
-      log_info "Shutting down the container"
+      log_info "Shutting down the container: ${ct_marker}"
       do_lxc ensure_down
     fi
 
@@ -307,7 +309,7 @@ deploy_lxc() (
   }
 
   update_config() {
-    declare conftext; conftext="$(pct config "${CT_ID}" --current)" || return
+    declare conftext; conftext="$(do_lxc conffile_head)" || return
     declare -a val_filter=(sed -e 's/^[^:]\+:\s*\([^ ]\+\)\s*$/\1/')
 
     PRIVILEGED="$(grep -q -m 1 '^\s*unprivileged:\s*1\s*$' <<< "${conftext}" && echo false || echo true)"
@@ -319,14 +321,26 @@ deploy_lxc() (
   configure_container() {
     log_info "Configuring ${CT_ID}${HOST_NAME:+ (${HOST_NAME})} ..."
 
-    declare features; features='nesting=1'
+    if [[ ${#SET_PARAMS[@]} -gt 0 ]]; then
+      (set -x; pct set "${CT_ID}" "${SET_PARAMS[@]}" >/dev/null) || {
+        log_fatal "Can't apply configuration"
+        return 1
+      }
+    fi
+
+    # Features are automanaged
+
+    declare conftext; conftext="$(do_lxc conffile_head)" || return
+    declare features; features="$(
+      grep '^\s*features:' <<< "${conftext}" \
+      | sed -e 's/[^:]*:\s*\(.*\)$/\1/' \
+            -e 's/\(nesting\|keyctl\)=[01]//g' \
+            -e 's/^,\+//' -e 's/,\+\s*$//'
+    )"
+
+    features+="${features:+,}nesting=1"
     ${PRIVILEGED} || features+=",keyctl=1"
-
-    declare -a cmd=(
-      pct set "${CT_ID}" --features "${features}" "${SET_PARAMS[@]}"
-    )
-
-    (set -x; "${cmd[@]}" >/dev/null) || {
+    (set -x; pct set "${CT_ID}" --features "${features}" >/dev/null) || {
       log_fatal "Can't apply configuration"
       return 1
     }
@@ -362,23 +376,13 @@ deploy_lxc() (
         | grep -qFx 'almalinux:8' || return 0
 
         set -x
-        # Give it some more time to worm up
-        sleep 10
         rpm --import https://repo.almalinux.org/almalinux/RPM-GPG-KEY-AlmaLinux
       }
 
-      declare was_up=false
-      do_lxc is_up && was_up=true
-      do_lxc ensure_up 5 || { log_fatal "Can't start the container"; return 1; }
-
       do_lxc_attach -- /bin/sh -c "$(declare -f fix_gpg_key); fix_gpg_key" || {
-        log_warn "Some issue with fixing GPG key"
+        log_fatal "Can't fix Almalinux 8 GPG key"
         return 1
       }
-
-      if ! ${was_up}; then
-        do_lxc ensure_down
-      fi
     )
   }
 
@@ -389,10 +393,9 @@ deploy_lxc() (
     # https://gist.github.com/afanjul/492ca7b10982f6de2cb2c475fe76af6a
 
     # # The following seems to be not needed:
-    # PRIVILEGED=true
+    # --unprivileged=0
     # do_lxc ensure_confline 'lxc.apparmor.profile: unconfined'
-
-    do_lxc ensure_confline 'lxc.cap.drop:' || return
+    # do_lxc ensure_confline 'lxc.cap.drop:'
 
     if [[ "${OS_TYPE}" == alpine ]]; then
       (
@@ -400,17 +403,9 @@ deploy_lxc() (
           set -x; rc-update add cgroups default >/dev/null
         }
 
-        declare was_up=false
-        do_lxc is_up && was_up=true
-        do_lxc ensure_up 5 || { log_fatal "Can't start the container"; return 1; }
-
         do_lxc_attach -- /bin/sh -c "$(declare -f add_cgroups); add_cgroups" || {
-          log_warn "Some issue with adding cgroups"
+          log_warn "Can't add cgroups"
         }
-
-        if ! ${was_up}; then
-          do_lxc ensure_down
-        fi
       )
     fi
   }
@@ -472,6 +467,8 @@ deploy_lxc() (
       && rc-update add -q docker boot \
       || return
 
+      # TODO: check return code on service
+
       # The service produces some mysterious "limit"-related
       # error, but seems to work fine
       service docker start &>/dev/null; return 0
@@ -485,23 +482,10 @@ deploy_lxc() (
 
     profile_docker_ready
 
-    declare -i warm=15
-    [[ "${OS_TYPE}" == alpine ]] && warm=5
-
-    declare was_up=false
-    do_lxc is_up && was_up=true
-    do_lxc ensure_up "${warm}" || {
-      log_fatal "Can't start the container"
+    do_lxc_attach -- /bin/sh -c "$(declare -f "${callback}"); ${callback}" || {
+      log_fatal "Can't install docker"
       return 1
     }
-
-    do_lxc_attach -- /bin/sh -c "$(declare -f "${callback}"); ${callback}" || {
-      log_warn "Some issue installing docker"
-    }
-
-    if ! ${was_up}; then
-      do_lxc ensure_down
-    fi
   )
 
   profile_vpn_ready() {
