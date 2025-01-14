@@ -160,7 +160,7 @@ TODO
 pct create CT_ID TEMPLATE \
   --unprivileged 1 \
   --net0 name=eth0,bridge=vmbr0,ip=dhcp \
-  --password PASSWORD \
+  --password "$(openssl passwd -6 -salt "$(openssl rand -hex 6)" -stdin <<< changeme)" \
   --storage local-lvm
 
 # 
@@ -238,6 +238,33 @@ cat <<-'EOF' | set -e 's/^\s*//' | (set -x; tee -a /etc/pve/lxc/CT_ID.conf)
   lxc.mount.entry: /dev/dri dev/dri none bind,optional,create=dir
   lxc.mount.entry: /dev/dri/card1 dev/dri/card1 none bind,optional,create=file
 EOF
+```
+</details>
+
+<details><summary>Configure static IP</summary>
+
+#### Ubuntu
+
+```yaml
+# $ cat /etc/netplan/01-netcfg.yaml
+
+# https://openvpn.net/as-docs/tutorials/tutorial--static-ip-on-ubuntu.html
+network:
+  ethernets:
+    eth0:           # Ethernet interface. `ip link` to list all available
+    dhcp4: false    # Disable DHCP
+    addresses: [192.0.2.2/24]  # Static IP / subnet mask
+    routes:
+      - to: default
+        via: 192.0.2.254          # Default gateway
+    nameservers:
+      address: [192.168.0.2.254]  # DNS servers
+```
+
+Apply the configuration:
+
+```sh
+netplan apply
 ```
 </details>
 

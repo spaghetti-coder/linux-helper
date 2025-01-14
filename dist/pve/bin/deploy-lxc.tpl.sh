@@ -17,8 +17,8 @@ lxc_config() {
   CREATE_PARAMS=(
     # Or '...,ip=10.0.0.69/8,gw=10.0.0.1'. Don't forget IP prefix and GW
     --net0='name=eth0,bridge=vmbr0,ip=dhcp'
-    # `pick_storage` to automanage STORAGE_ID
-    --storage="$(pick_storage)" # local-lvm
+    # `pick_rootdir` to automanage STORAGE_ID
+    --storage="$(pick_rootdir)" # local-lvm
     --rootfs=5  # In GB, optional
     --unprivileged=1
     # Don't keep plain password, hash with:
@@ -42,8 +42,10 @@ lxc_config() {
 
   # Postdeploy stage available variables:
   # * CT_ID       Actual container id
-  # * OS_TYPE     Actual Guest OS type
   # * PRIVILEGED  Actual privileged state with value of true / false
+  # * ONBOOT      Actual onboot with value of true / false
+  # * OS_TYPE     Actual Guest OS type
+  # * HOST_NAME   Actual hostname
 
   # Better prefix hooks with 'lxc_' to avoid overriding
   # of deploy_lxc internal functions
@@ -88,7 +90,6 @@ lxc_postdeploy_dummy() {
     "lxc.mount.entry: /pve/dir lxc/dir none bind,create=dir 0 0" \
   || log_fatal "Can't mount"
 
-  log_info "Upgrading container OS"
   (
     # In-container callback
     upgrade() {
@@ -97,16 +98,10 @@ lxc_postdeploy_dummy() {
       DEBIAN_FRONTEND=noninteractive apt-get dist-upgrade -qy
     }
 
-    declare was_up=false
-    do_lxc is_up && was_up=true
-    # 15 secs to warm up
-    do_lxc ensure_up 15 || { log_fatal "Can't start the container"; exit 1; }
-
-    lxc_attach -- /bin/sh -c "$(declare -f update); update"
-
-    if ! ${was_up}; then
-      do_lxc ensure_down
-    fi
+    log_info "Upgrading container OS"
+    do_lxc_attach -- /bin/sh -c "$(declare -f update); update" || {
+      log_fatal "Upgrade failed"; return 1
+    }
   )
 }
 
@@ -132,15 +127,32 @@ deploy_lxc() (
 
     configure_container || return
 
-    # Always run this to fix AlmaLinux 8 GPG issue
-    profile_fix_almalinux8_gpg || return
+    # Detect started state
+    declare was_up=false
+    do_lxc is_up && was_up=true
 
-    run_postdeploy || return 1
+    # Give it some time to warm up
+    declare -i warm=15
+    [[ "${OS_TYPE}" == alpine ]] && warm=5
 
-    if ${ONBOOT}; then
+    do_lxc ensure_up "${warm}" && {
+      # Always run this to fix AlmaLinux 8 GPG issue
+      profile_fix_almalinux8_gpg
+    } && {
+      # Perform postdeploys
+      run_postdeploy
+    }
+    declare RC=$?
+
+    if ${was_up} || ${ONBOOT}; then
       log_info "Starting the container"
       do_lxc ensure_up 0
+    else
+      log_info "Shutting down the container"
+      do_lxc ensure_down
     fi
+
+    return "${RC}"
   }
 
   init_internal_vars() {
@@ -155,7 +167,9 @@ deploy_lxc() (
       CT_ID \
       TEMPLATE \
       PRIVILEGED \
-      OS_TYPE
+      ONBOOT \
+      OS_TYPE \
+      HOST_NAME
     declare -ga \
       CREATE_PARAMS \
       SET_PARAMS \
@@ -166,13 +180,15 @@ deploy_lxc() (
   # HELPERS
   # ,,,,,,,
 
-  do_lxc() { lxc_do "${CT_ID}" "${@}"; }
-  lxc_attach() { lxc-attach -n "${CT_ID}" "${@}"; }
-  get_next_id() { pvesh get /cluster/nextid; }
-  list_storages() { pvesm status -content rootdir | cut -d' ' -f1 | tail -n +2; }
-  pick_storage() { list_storages | grep -m 1 '.\+'; }
-  log_info() { printf -- '### ('"${SELF}"') info: %s\n' "${@}" >&2; }
-  log_warn() { printf -- '### ('"${SELF}"') warn: %s\n' "${@}" >&2; }
+  do_lxc()        { lxc_do "${CT_ID}" "${@}"; }
+  do_lxc_attach() { lxc-attach -n "${CT_ID}" "${@}"; }
+
+  get_next_id()   { pvesh get /cluster/nextid; }
+  list_rootdirs() { pvesm status -content rootdir | cut -d' ' -f1 | tail -n +2; }
+  pick_rootdir()  { list_rootdirs | grep -m 1 '.\+'; }
+
+  log_info()  { printf -- '### ('"${SELF}"') info: %s\n' "${@}" >&2; }
+  log_warn()  { printf -- '### ('"${SELF}"') warn: %s\n' "${@}" >&2; }
   log_fatal() { echo '###' >&2; printf -- '### ('"${SELF}"') FATAL: %s\n' "${@}" >&2; echo '###' >&2; }
 
   # PRE-DEPLOY
@@ -188,7 +204,10 @@ deploy_lxc() (
       CREATE_PARAMS=(); SET_PARAMS=()
       PREDEPLOY=(); POSTDEPLOY=()
 
-      "${c}" || return
+      "${c}" || {
+        log_fatal "Can't run config function: '${c}'"
+        return 1
+      }
 
       create_params+=("${CREATE_PARAMS[@]}")
       set_params+=("${SET_PARAMS[@]}")
@@ -289,9 +308,12 @@ deploy_lxc() (
 
   update_config() {
     declare conftext; conftext="$(pct config "${CT_ID}" --current)" || return
+    declare -a val_filter=(sed -e 's/^[^:]\+:\s*\([^ ]\+\)\s*$/\1/')
 
-    OS_TYPE="$(grep -m 1 '^\s*ostype\s*:\s*' <<< "${conftext}" | sed -e 's/^.\+:\s*\([^ ]\+\)\s*$/\1/')"
     PRIVILEGED="$(grep -q -m 1 '^\s*unprivileged:\s*1\s*$' <<< "${conftext}" && echo false || echo true)"
+    ONBOOT="$(grep -q -m 1 '^\s*onboot:\s*1\s*$' <<< "${conftext}" && echo true || echo false)"
+    OS_TYPE="$(grep -m 1 '^\s*ostype\s*:\s*' <<< "${conftext}" | "${val_filter[@]}")"
+    HOST_NAME="$(grep -m 1 '^\s*hostname:\s*' <<< "${conftext}" | "${val_filter[@]}")"
   }
 
   configure_container() {
@@ -349,8 +371,9 @@ deploy_lxc() (
       do_lxc is_up && was_up=true
       do_lxc ensure_up 5 || { log_fatal "Can't start the container"; return 1; }
 
-      lxc_attach -- /bin/sh -c "$(declare -f fix_gpg_key); fix_gpg_key" || {
+      do_lxc_attach -- /bin/sh -c "$(declare -f fix_gpg_key); fix_gpg_key" || {
         log_warn "Some issue with fixing GPG key"
+        return 1
       }
 
       if ! ${was_up}; then
@@ -381,7 +404,7 @@ deploy_lxc() (
         do_lxc is_up && was_up=true
         do_lxc ensure_up 5 || { log_fatal "Can't start the container"; return 1; }
 
-        lxc_attach -- /bin/sh -c "$(declare -f add_cgroups); add_cgroups" || {
+        do_lxc_attach -- /bin/sh -c "$(declare -f add_cgroups); add_cgroups" || {
           log_warn "Some issue with adding cgroups"
         }
 
@@ -472,7 +495,7 @@ deploy_lxc() (
       return 1
     }
 
-    lxc_attach -- /bin/sh -c "$(declare -f "${callback}"); ${callback}" || {
+    do_lxc_attach -- /bin/sh -c "$(declare -f "${callback}"); ${callback}" || {
       log_warn "Some issue installing docker"
     }
 
