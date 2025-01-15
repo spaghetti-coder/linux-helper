@@ -167,7 +167,7 @@ pct create CT_ID TEMPLATE \
 # CONFIGURE: basic
 # 
 
-# FEATURES=nesting=1 # when privileged
+# `--features nesting=1` # when `--unprivileged 0`
 pct set CT_ID \
   --timezone host \
   --features nesting=1,keyctl=1 \
@@ -187,9 +187,11 @@ lxc-attach -n CT_ID -- \
 # CONFIGURE: docker-ready
 # 
 
-echo 'lxc.cap.drop:' | (set -x; tee -a /etc/pve/lxc/CT_ID.conf)
+# With `--features nesting=1,keyctl=1`
+# or `--unprivileged 0 --features nesting=1`
+# no additional settings required except for alpine
 
-# Plus for Alpine only (with running container):
+# Alpine only (with running container):
 lxc-attach -n CT_ID -- \
   rc-update add cgroups default >/dev/null
 

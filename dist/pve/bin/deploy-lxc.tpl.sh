@@ -467,11 +467,9 @@ deploy_lxc() (
       && rc-update add -q docker boot \
       || return
 
-      # TODO: check return code on service
-
       # The service produces some mysterious "limit"-related
-      # error, but seems to work fine
-      service docker start &>/dev/null; return 0
+      # error, but still starts
+      service docker start &>/dev/null
     )
 
     declare callback="install_docker_${OS_TYPE}"
@@ -502,7 +500,12 @@ deploy_lxc() (
       "lxc.cap.drop:"
     )
 
-    do_lxc ensure_confline "${conflines[@]}"
+    do_lxc ensure_confline "${conflines[@]}" \
+    && (
+      set -x
+      pct reboot "${CT_ID}" \
+      && sleep 5
+    )
   }
 
   profile_vaapi() {
@@ -516,7 +519,12 @@ deploy_lxc() (
       declare card=/dev/dri/card0
       [[ -e "${card}" ]] || card=/dev/dri/card1
 
-      do_lxc ensure_dev "${drm_dev},gid=104" "${card},gid=44"
+      do_lxc ensure_dev "${drm_dev},gid=104" "${card},gid=44" && (
+        set -x
+        pct reboot "${CT_ID}" \
+        && sleep 5
+      )
+
       return
     fi
 
@@ -526,7 +534,12 @@ deploy_lxc() (
       "lxc.cgroup2.devices.allow: c 29:0 rwm" \
       "lxc.mount.entry: /dev/fb0 dev/fb0 none bind,optional,create=file" \
       "lxc.mount.entry: /dev/dri dev/dri none bind,optional,create=dir" \
-      "lxc.mount.entry: ${drm_dev} ${drm_dev#/*} none bind,optional,create=file"
+      "lxc.mount.entry: ${drm_dev} ${drm_dev#/*} none bind,optional,create=file" \
+    && (
+      set -x
+      pct reboot "${CT_ID}" \
+      && sleep 5
+    )
   }
 
   # INVOKE
