@@ -1645,6 +1645,16 @@ lxc_do() (
     (set -x; pct set "${CT_ID}" --hookscript "local:snippets/${hook_fname}") || return
   }
 
+  unhookscript() {
+    declare HOOK_PATH="/var/lib/vz/snippets/${CT_ID}.hook.sh"
+
+    (
+      set -x
+      pct set "${CT_ID}" --delete hookscript 2>/dev/null
+      rm -f "${HOOK_PATH}"
+    )
+  }
+
   is_down() {
     # is_down && { IS_DOWN_BLOCK } || { IS_UP_BLOCK }
 
@@ -1699,6 +1709,7 @@ lxc_do() (
     exists
     get_uptime
     hookscript
+    unhookscript
     is_down
     is_up
   )

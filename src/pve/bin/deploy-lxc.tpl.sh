@@ -389,6 +389,9 @@ deploy_lxc() (
     )
     declare pass_rex='\(--password[= ]\)[^ ]\+'
 
+    # Ensure there is no hook
+    do_lxc unhookscript || return
+
     ( set -o pipefail
       (set -x; "${cmd[@]}" >/dev/null) 3>&1 1>&2 2>&3 \
       | sed -e 's/'"${pass_rex}"'/\1*****/g'
