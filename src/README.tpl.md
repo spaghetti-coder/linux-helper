@@ -24,6 +24,26 @@
 
 ## Config
 
+<a id="asset/conf/gotify/gotify-push.sh"></a>
+<details><summary>asset/conf/gotify/gotify-push.sh</summary>
+
+  [Link to the section](#asset/conf/gotify/gotify-push.sh)
+
+  View [`gotify-push.sh`](@@BASE_RAW_URL/master/dist/asset/conf/gotify/gotify-push.sh)
+  
+  **AD HOC:**
+
+  ~~~sh
+  # VERSION can be changed to any treeish
+  (
+    VERSION='master'
+    curl -V &>/dev/null && dl_tool=(curl -fsSL) || dl_tool=(wget -qO-)
+    set -x; "${dl_tool[@]}" "@@BASE_RAW_URL/${VERSION:-master}/dist/asset/conf/gotify/gotify-push.sh" \
+    || "${dl_tool[@]}" "@@BASE_RAW_URL_ALT/${VERSION:-master}/dist/asset/conf/gotify/gotify-push.sh"
+  ) | (set -x; tee ~/gotify-push.sh >/dev/null && chmod +x ~/gotify-push.sh)
+  ~~~
+</details>
+
 <!-- .LH_DETAILS:config/bash/bashrcd.sh -->
 <!-- .LH_DETAILS:config/git/git-ps1.sh -->
 

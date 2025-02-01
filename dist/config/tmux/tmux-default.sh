@@ -476,7 +476,7 @@ text_fmt() {
   local content; content="$(
     sed '/[^ ]/,$!d' <<< "${1-"$(cat)"}" | tac | sed '/[^ ]/,$!d' | tac
   )"
-  local offset; offset="$(grep '[^ ]' <<< "${content}" | grep -o '^\s*' | sort | head -n 1)"
+  local offset; offset="$(grep -o -m1 '^\s*' <<< "${content}")"
   sed -e 's/^\s\{0,'${#offset}'\}//' -e 's/\s\+$//' <<< "${content}"
 }
 # .LH_SOURCED: {{/ lib/text.sh }}

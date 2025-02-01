@@ -354,6 +354,26 @@
 
 ## Config
 
+<a id="asset/conf/gotify/gotify-push.sh"></a>
+<details><summary>asset/conf/gotify/gotify-push.sh</summary>
+
+  [Link to the section](#asset/conf/gotify/gotify-push.sh)
+
+  View [`gotify-push.sh`](https://github.com/spaghetti-coder/linux-helper/raw/master/dist/asset/conf/gotify/gotify-push.sh)
+  
+  **AD HOC:**
+
+  ~~~sh
+  # VERSION can be changed to any treeish
+  (
+    VERSION='master'
+    curl -V &>/dev/null && dl_tool=(curl -fsSL) || dl_tool=(wget -qO-)
+    set -x; "${dl_tool[@]}" "https://github.com/spaghetti-coder/linux-helper/raw/${VERSION:-master}/dist/asset/conf/gotify/gotify-push.sh" \
+    || "${dl_tool[@]}" "https://bitbucket.org/kvedenskii/linux-scripts/raw/${VERSION:-master}/dist/asset/conf/gotify/gotify-push.sh"
+  ) | (set -x; tee ~/gotify-push.sh >/dev/null && chmod +x ~/gotify-push.sh)
+  ~~~
+</details>
+
 <a id="config/bash/bashrcd.sh"></a>
 <details><summary>config/bash/bashrcd.sh</summary>
 
