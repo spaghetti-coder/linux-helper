@@ -374,6 +374,95 @@
   ~~~
 </details>
 
+<a id="asset/dydns.sh"></a>
+<details><summary>asset/dydns.sh</summary>
+
+  [Link to the section](#asset/dydns.sh)
+
+  **AD HOC:**
+
+  ~~~sh
+  # VERSION can be changed to any treeish
+  (
+    VERSION='master'
+    curl -V &>/dev/null && dl_tool=(curl -fsSL) || dl_tool=(wget -qO-)
+    set -x; "${dl_tool[@]}" "https://github.com/spaghetti-coder/linux-helper/raw/${VERSION:-master}/dist/asset/dydns.sh" \
+    || "${dl_tool[@]}" "https://bitbucket.org/kvedenskii/linux-scripts/raw/${VERSION:-master}/dist/asset/dydns.sh"
+  ) | (set -x; tee ~/dydns.sh >/dev/null && chmod +x ~/dydns.sh)
+  ~~~
+  
+  **MAN:**
+  ~~~
+  Update dynamic DNS. Supported providers:
+  * duckdns
+  * dynu
+  * now-dns
+  * ydns
+  
+  For help on a specific provider issue:
+    dydns.sh PROVIDER --help
+  
+  Requirements:
+  * bash
+  * curl
+  * crontab (only for configuring scheduled IP updates)
+  
+  USAGE:
+  =====
+  # Token and domains must be provided either via environment
+  # variables or via options
+  [export <PROVIDER_PREFIX>_TOKEN=...]
+  [export <PROVIDER_PREFIX>_DOMAINS=...]
+  [export <PROVIDER_PREFIX>_SCHEDULE=...]
+  [export <PROVIDER_PREFIX>_ONDONE=...]
+  dydns.sh PROVIDER [DOMAINS...] [--token TOKEN] \
+    [--ondone ONDONE_SCRIPT] [--schedule SCHEDULE [--dry]]
+  
+  DEMO:
+  ====
+  #
+  # Provider:           now-dns (https://now-dns.com)
+  # Domains:            site1.mypi.co, site2.ddns.cam
+  # Registration email: foo@bar.baz
+  # Token:              secret-token
+  #
+  
+  # Update domains manually
+  dydns.sh now-dns --token 'foo@bar.baz:secret-token' \
+    'site1.mypi.co,site2.ddns.cam'
+  
+  # Same, but domains are in multiple positional params
+  dydns.sh now-dns --token 'foo@bar.baz:secret-token' \
+    'site1.mypi.co' 'site2.ddns.cam'
+  
+  # Same, but using env variables. Domains are only comma-separated
+  export NOW_DNS_TOKEN='foo@bar.baz:secret-token'
+  export NOW_DNS_DOMAINS='site1.mypi.co,site2.ddns.cam'
+  dydns.sh now-dns
+  
+  # Install 'now-dns' provider to ${HOME}/.dydns/now-dns dorectory, schedule DyDNS
+  # updates with ~/log.sh script run on each update. To access installed provider:
+  #   "${HOME}/.dydns/now-dns/now-dns.sh" `# with --help flag to view help`
+  # Also the following crontab entry will be created:
+  #   */5 * * * * ... '/home/bug1/.dydns/now-dns/now-dns.sh'
+  # After installing all desired providers 'dydns.sh' script can be deleted.
+  dydns.sh now-dns --schedule '*/5 * * * *' --ondone ~/log.sh \
+    --token 'foo@bar.baz:secret-token' 'site1.mypi.co,site2.ddns.cam'
+  # Optionally create the log script
+  printf -- '%s\n' '#!/usr/bin/env bash' '' \
+    '# RC - 0 for successful update or 1 for failure' \
+    '# MSG - response message from the provider' \
+    'echo "RC=${1}; MSG=${2}; PROVIDER=${3}; DOMAINS=${4}" >> ~/dydns.log' \
+    > ~/log.sh; chmod +x ~/log.sh
+  
+  # Same as previous, but without logger and cron configuration. They can be
+  # configured later with the installed provider script (see its '--help').
+  dydns.sh now-dns --dry --schedule '*/5 * * * *' \
+    --token 'foo@bar.baz:secret-token' 'site1.mypi.co,site2.ddns.cam'
+  ~~~
+  
+</details>
+
 <a id="config/bash/bashrcd.sh"></a>
 <details><summary>config/bash/bashrcd.sh</summary>
 
