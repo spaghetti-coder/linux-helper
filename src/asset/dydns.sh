@@ -435,10 +435,6 @@ dydns() (
       declare -A SELF
       conf
 
-      # Source token file
-      # shellcheck disable=SC1090
-      . "${SELF[token_file]}"
-
       # Normalize values
       # shellcheck disable=SC2001,SC2030
       DOMAINS="$(sed -e 's/\s*,\s*/,/g' <<< "${DOMAINS}" \
@@ -479,7 +475,7 @@ dydns() (
             # Desired schedule, can differ from the actual one in the crontab
             SCHEDULE='$(escape_single_quotes "${SCHEDULE}")'
             ONDONE='$(escape_single_quotes "${ONDONE}")'
-            # TOKEN   # Resides in a separate file, \`cat -- \${SELF[token_file]}\`
+            "'. "${SELF[token_file]}"'" # TOKEN='...' # <- Resides in a separate file
           }
         }
 
