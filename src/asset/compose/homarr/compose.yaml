@@ -1,0 +1,33 @@
+#
+# GARBAGED: doesn't play with mobile
+#
+# DOMAIN=example.com
+# CONF_DIR=/etc/homarr
+# WEBUI_PORT=7575
+---
+services:
+  homarr:
+    # https://github.com/homarr-labs/homarr/releases
+    image: ghcr.io/homarr-labs/homarr:1.5.0
+    container_name: homarr
+    restart: unless-stopped
+    hostname: homarr.{{ DOMAIN }}
+    networks:
+      - nginx-proxy
+    environment:
+      - VIRTUAL_HOST=homarr.{{ DOMAIN }}
+      - VIRTUAL_PORT=7575
+      # - PUID=0
+      # - PGID=0
+      # - TZ=
+    env_file:
+      - ./secret.env
+    volumes:
+      # - /var/run/docker.sock:/var/run/docker.sock # <- Optional, only for docker integration
+      - '{{ CONF_DIR }}:/appdata'
+    ports:
+      - '{{ WEBUI_PORT }}:7575'
+
+networks:
+  nginx-proxy:
+    external: true

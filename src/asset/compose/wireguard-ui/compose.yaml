@@ -1,0 +1,63 @@
+#
+# GARBAGED: couldn't make it work
+#
+# DOMAIN=example.com
+# CONF_DIR=/etc/wireguard
+# WEBUI_PORT=5000
+# UDP_PORT=51820
+---
+
+# https://github.com/linuxserver/docker-wireguard
+# https://github.com/ngoduykhanh/wireguard-ui/blob/master/examples/docker-compose/linuxserver.yml
+# https://docs.techdox.nz/wireguard/
+# https://www.youtube.com/watch?v=QLL5lT0SDoQ
+
+services:
+  wireguard:
+    # Use v1.0.20210914-ls7, latest seems to have issues
+    # https://hub.docker.com/r/linuxserver/wireguard/tags
+    image: linuxserver/wireguard:v1.0.20210914-ls7
+    container_name: wireguard-ui-wireguard
+    hostname: wireguard-ui-wireguard.{{ DOMAIN }}
+    networks:
+      - nginx-proxy
+    cap_add:
+      - NET_ADMIN
+    environment:
+      - VIRTUAL_HOST=wireguard-ui.{{ DOMAIN }}
+      - VIRTUAL_PORT=5000
+    env_file:
+      - ./config.env
+    volumes:
+      - '{{ CONF_DIR }}/wireguard:/config'
+    ports:
+      - '{{ WEBUI_PORT }}:5000'
+      - '{{ UDP_PORT}}:51820/udp'
+
+  wireguard-ui:
+    # https://hub.docker.com/r/ngoduykhanh/wireguard-ui/tags
+    image: ngoduykhanh/wireguard-ui:0.6.2
+    container_name: wireguard-ui
+    restart: unless-stopped
+    # hostname: wireguard-ui.{{ DOMAIN }}
+    depends_on:
+      - wireguard
+    cap_add:
+      - NET_ADMIN
+    environment: []
+    # https://github.com/compose-spec/compose-spec/blob/main/spec.md#network_mode
+    network_mode: service:wireguard
+    env_file:
+      - ./config.env
+      - ./secret.env
+    logging:
+      driver: json-file
+      options:
+        max-size: 50m
+    volumes:
+      - '{{ CONF_DIR }}/wireguard-ui/db:/app/db'
+      - '{{ CONF_DIR }}/wireguard-ui/config:/etc/wireguard'
+
+networks:
+  nginx-proxy:
+    external: true

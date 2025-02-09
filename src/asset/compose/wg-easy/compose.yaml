@@ -1,0 +1,37 @@
+# DOMAIN=example.com
+# CONF_DIR=/etc/wireguard
+# UDP_PORT=51820
+# WEBUI_PORT=51821
+---
+services:
+  wg-easy:
+    # https://github.com/wg-easy/wg-easy/pkgs/container/wg-easy/versions?filters%5Bversion_type%5D=tagged
+    image: ghcr.io/wg-easy/wg-easy:14
+    container_name: wg-easy
+    restart: unless-stopped
+    hostname: wg-easy.{{ DOMAIN }}
+    networks:
+      - nginx-proxy
+    environment:
+      - VIRTUAL_HOST=wg-easy.{{ DOMAIN }}
+      - VIRTUAL_PORT=51821
+      - WG_PORT={{ UDP_PORT }} # <- The port exposed to the wild
+    env_file:
+      - ./config.env
+      - ./secret.env
+    volumes:
+      - '{{ CONF_DIR }}:/etc/wireguard'
+    ports:
+      - '{{ UDP_PORT }}:{{ UDP_PORT }}/udp' # WG UDP port
+      - '{{ WEBUI_PORT }}:51821/tcp'
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+      # - NET_RAW     # <- Uncomment if using Podman
+    sysctls:
+      - net.ipv4.ip_forward=1
+      - net.ipv4.conf.all.src_valid_mark=1
+
+networks:
+  nginx-proxy:
+    external: true

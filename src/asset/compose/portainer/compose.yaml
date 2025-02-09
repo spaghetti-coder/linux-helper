@@ -1,0 +1,32 @@
+# DOMAIN=example.com
+# CONF_DIR=/etc/portainer
+# WEBUI_PORT=9443
+# TCP_TUNNEL_PORT=8000
+---
+# Tutorials:
+# * https://www.youtube.com/watch?v=iX0HbrfRyvc
+
+services:
+  portainer:
+    # https://hub.docker.com/r/portainer/portainer-ce/tags?name=alpine
+    image: portainer/portainer-ce:2.26.1-alpine
+    container_name: portainer
+    restart: unless-stopped
+    hostname: portainer.{{ DOMAIN }}
+    networks:
+      - nginx-proxy
+    environment:
+      VIRTUAL_HOST: portainer.{{ DOMAIN }}
+      # https://docs.portainer.io/advanced/reverse-proxy/nginx
+      VIRTUAL_PORT: 9443
+      VIRTUAL_PROTO: https
+    volumes:
+      - '{{ CONF_DIR }}:/data'
+      - '/var/run/docker.sock:/var/run/docker.sock'
+    ports:
+      - '{{ WEBUI_PORT }}:9443'
+      - '{{ TCP_TUNNEL_PORT }}:8000' # <- SSH tunnel to connect to agents
+
+networks:
+  nginx-proxy:
+    external: true

@@ -1,0 +1,32 @@
+# DOMAIN=example.com
+# CONF_DIR=/etc/nginx-proxy-manager
+---
+services:
+  nginx-proxy-manager:
+    # https://hub.docker.com/r/jc21/nginx-proxy-manager/tags
+    image: jc21/nginx-proxy-manager:2.12.2
+    container_name: nginx-proxy-manager
+    restart: unless-stopped
+    hostname: nginx-proxy-manager.{{ DOMAIN }}
+    environment:
+      - VIRTUAL_HOST=nginx-proxy-manager.{{ DOMAIN }},npm.{{ DOMAIN }},{{ DOMAIN }}
+      - VIRTUAL_PORT=81
+    env_file:
+      - ./config.env
+    volumes:
+      - '{{ CONF_DIR }}/data:/data'
+      - '{{ CONF_DIR }}/letsencrypt:/etc/letsencrypt'
+    network_mode: host
+    # ports:
+    #   - '80:80'   # HTTP Port
+    #   - '81:81'   # Web UI port
+    #   - '443:443' # HTTPS Port
+    #   # Add any other Stream port you want to expose
+    #   # - '21:21' # FTP
+
+# * host network mode in order to allow any Stream port
+# * Due to host network 'nginx-proxy' network is not required
+# * nginx-proxy container is reachable via http://localhost:NGINX_PROXY_HTTP_PORT
+# networks:
+#   nginx-proxy:
+#     external: true

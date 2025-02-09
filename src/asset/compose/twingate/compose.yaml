@@ -1,0 +1,20 @@
+# DOMAIN=example.com
+---
+# Tutorials:
+# * https://www.youtube.com/watch?v=IYmXPF3XUwo
+# * https://www.twingate.com/docs/deploy-connector-with-docker-compose
+
+services:
+  twingate-connector:
+    # https://hub.docker.com/r/twingate/connector/tags
+    image: twingate/connector:1.73.0
+    container_name: twingate
+    restart: unless-stopped
+    hostname: twingate.{{ DOMAIN }}
+    # network_mode: host  # <- Make Connector available only in local network
+    network_mode: bridge  # <- Avoid compose default network creation
+    env_file:
+      - ./config.env
+      - ./secret.env
+#     sysctls:
+#       net.ipv4.ping_group_range: '0 2147483647'

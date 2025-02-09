@@ -1,0 +1,20 @@
+# DOMAIN=example.com
+# AGENT_PORT=9001
+---
+# Tutorials:
+# * https://www.youtube.com/watch?v=iX0HbrfRyvc
+
+services:
+  agent:
+    # https://hub.docker.com/r/portainer/agent/tags?name=alpine
+    image: 'portainer/agent:2.26.1'
+    container_name: portainer-agent
+    restart: unless-stopped
+    hostname: portainer-agent.{{ DOMAIN }}
+    volumes:
+      - '/:/host'
+      - '/var/lib/docker/volumes:/var/lib/docker/volumes'
+      - '/var/run/docker.sock:/var/run/docker.sock'
+    network_mode: bridge  # <- Avoid compose default network creation
+    ports:
+      - '{{ AGENT_PORT }}:9001'
