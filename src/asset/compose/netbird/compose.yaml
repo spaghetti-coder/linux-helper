@@ -1,0 +1,16 @@
+# DOMAIN=example.com
+# CONF_DIR=/etc/netbird
+---
+services:
+  netbird:
+    # https://hub.docker.com/r/netbirdio/netbird/tags
+    image: netbirdio/netbird:latest
+    container_name: netbird
+    restart: unless-stopped
+    hostname: netbird.{{ DOMAIN }}
+    volumes:
+      - '{{ CONF_DIR }}:/etc/netbird'
+    env_file:
+      - ./secret.env
+    cap_add:
+      - NET_ADMIN

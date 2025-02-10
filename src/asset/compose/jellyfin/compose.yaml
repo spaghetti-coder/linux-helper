@@ -1,0 +1,35 @@
+# DOMAIN=example.com
+# CONF_DIR=/etc/jellyfin
+# SHARE_DIR=/mnt/share
+# WEBUI_PORT=8069
+---
+services:
+  jellyfin:
+    # https://hub.docker.com/r/linuxserver/jellyfin/tags
+    image: linuxserver/jellyfin:10.10.5
+    container_name: jellyfin
+    restart: unless-stopped
+    hostname: jellyfin.{{ DOMAIN }}
+    networks:
+      - nginx-proxy
+    environment:
+      - VIRTUAL_HOST=jellyfin.{{ DOMAIN }}
+      - VIRTUAL_PORT=8096
+      # - JELLYFIN_PublishedServerUrl=https://jellyfin.{{ DOMAIN }} # optional
+    env_file:
+      - ./config.env
+    devices:
+      # https://github.com/linuxserver/docker-jellyfin#intelatiamd
+      - /dev/dri:/dev/dri
+    volumes:
+      - '{{ CONF_DIR }}:/config'
+      - '{{ SHARE_DIR }}:/data'
+    ports:
+      - '{{ WEBUI_PORT }}:8096'
+      # - 8920:8920     # optional
+      - 7359:7359/udp # optional
+      - 1900:1900/udp # optional
+
+networks:
+  nginx-proxy:
+    external: true
