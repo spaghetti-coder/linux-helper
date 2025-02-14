@@ -1,0 +1,25 @@
+# DOMAIN=example.com
+# WEBUI_PORT=1080
+# SMTP_PORT=1025
+---
+services:
+  maildev:
+    # https://hub.docker.com/r/maildev/maildev/tags
+    image: maildev/maildev:2.1.0
+    container_name: maildev
+    restart: unless-stopped
+    hostname: maildev.{{ DOMAIN }}
+    networks:
+      - nginx-proxy
+    environment:
+      - VIRTUAL_HOST=maildev.{{ DOMAIN }}
+      - VIRTUAL_PORT=1080
+    env_file:
+      - ./config.env
+    ports:
+      - "{{ WEBUI_PORT }}:1080"
+      - "{{ SMTP_PORT }}:1025"
+
+networks:
+  nginx-proxy:
+    external: true
