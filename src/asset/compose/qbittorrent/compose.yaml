@@ -1,0 +1,41 @@
+# DOMAIN=example.com
+# CONF_DIR=/etc/qbittorrent
+# TORRENTS_DIR=/data/downloads
+# WEBUI_PORT=8080
+# TORRENTING_PORT=6881
+---
+# Temporary password for the admin user will be printed to the container log on startup
+services:
+  qbittorrent:
+    # https://hub.docker.com/r/linuxserver/qbittorrent/tags
+    # https://github.com/VueTorrent/VueTorrent/pkgs/container/vuetorrent-lsio-mod/versions
+    image: linuxserver/qbittorrent:5.0.3
+    container_name: qbittorrent
+    restart: unless-stopped
+    hostname: qbittorrent.{{ DOMAIN }}
+    networks:
+      - nginx-proxy
+    environment:
+      # Enable VueTorrent mod
+      # https://github.com/VueTorrent/VueTorrent/wiki/Installation#using-lsio-docker-mod
+      - DOCKER_MODS=ghcr.io/vuetorrent/vuetorrent-lsio-mod:2.22.0
+      - VIRTUAL_HOST=qbittorrent.{{ DOMAIN }}
+      - VIRTUAL_PORT=8080
+      - WEBUI_PORT=8080   # <- Due to issues with CSRF port mapping must be explicit
+      - TORRENTING_PORT=6881
+    env_file:
+      - ./config.env
+    volumes:
+      - '{{ CONF_DIR }}:/config'
+      - '{{ TORRENTS_DIR }}:/downloads'
+      # Usage:
+      #   qBittorrent UI -> Settings -> Downloads -> External ... on finished -> "/scripts/downloaded.sh '%N'"
+      - ./scripts:/scripts:ro
+    ports:
+      - '{{ WEBUI_PORT }}:8080'
+      - '{{ TORRENTING_PORT }}:6881'
+      - '{{ TORRENTING_PORT }}:6881/udp'
+
+networks:
+  nginx-proxy:
+    external: true
