@@ -1,6 +1,6 @@
 # DOMAIN=example.com
 # CONF_DIR=/etc/wireguard
-# UDP_PORT=51820
+# VPN_PORT=51820
 # WEBUI_PORT=51821
 ---
 services:
@@ -15,14 +15,14 @@ services:
     environment:
       - VIRTUAL_HOST=wg-easy.{{ DOMAIN }}
       - VIRTUAL_PORT=51821
-      - WG_PORT={{ UDP_PORT }} # <- The port exposed to the wild
+      - WG_PORT={{ VPN_PORT }} # <- The port exposed to the wild
     env_file:
       - ./config.env
       - ./secret.env
     volumes:
       - '{{ CONF_DIR }}:/etc/wireguard'
     ports:
-      - '{{ UDP_PORT }}:{{ UDP_PORT }}/udp' # WG UDP port
+      - '{{ VPN_PORT }}:{{ VPN_PORT }}/udp' # WG UDP port
       - '{{ WEBUI_PORT }}:51821/tcp'
     cap_add:
       - NET_ADMIN
