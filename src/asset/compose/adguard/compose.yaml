@@ -9,7 +9,7 @@ services:
     image: adguard/adguardhome:v0.107.56
     container_name: adguard
     restart: unless-stopped
-    hostname: adguard.{{ DOMAIN }}
+    # hostname: adguard.{{ DOMAIN }}
     networks:
       - nginx-proxy
     environment:
