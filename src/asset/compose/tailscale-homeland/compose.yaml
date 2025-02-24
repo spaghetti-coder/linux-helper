@@ -1,0 +1,42 @@
+---
+# This one is supposed to work as an exit node
+# and provide access to local network routes
+
+# https://www.youtube.com/watch?v=QJzjJozAYJo
+# https://www.youtube.com/watch?v=d8FyQKAVJtQ
+
+services:
+  tailscale-homeland:
+    # https://hub.docker.com/r/tailscale/tailscale/tags
+    image: tailscale/tailscale:v1.80.0
+    container_name: tailscale-homaland
+    restart: unless-stopped
+    hostname: tailscale-homaland.{{ DOMAIN }}
+    # https://forums.docker.com/t/is-it-possible-to-stop-docker-compose-from-creating-a-default-network/129805/2
+    network_mode: bridge
+    # networks:
+    #   - nginx-proxy
+    environment:
+      - TS_EXTRA_ARGS=--advertise-exit-node
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_USERSPACE=0
+    env_file:
+      - secret.env
+    volumes:
+      - '{{ CONF_DIR }}:/var/lib/tailscale'
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    sysctls:
+      # printf -- '%s\n' 'net.ipv4.ip_forward = 1' 'net.ipv6.conf.all.forwarding = 1' | sudo tee /etc/sysctl.d/99-tailscale.conf >/dev/null
+      # sudo sysctl -p /etc/sysctl.d/99-tailscale.conf
+      - net.ipv4.ip_forward=1
+      - net.ipv6.conf.all.forwarding=1
+
+# Enable nginx-proxy network by uncommenting this secion and
+# 'networks' under the service and commenting 'network_mode'
+# networks:
+#   nginx-proxy:
+#     external: true
